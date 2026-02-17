@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rahal & Rahala - Endless Runner</title>
+    
+    <!-- Tailwind CSS for UI Overlays -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phaser 3 Game Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Updated Background Color */
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #13647a; font-family: 'Roboto', sans-serif; }
+        #game-container { width: 100vw; height: 100vh; position: relative; z-index: 1; }
+        
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; justify-content: center; align-items: center; z-index: 10; }
+        .interactive { pointer-events: auto; }
+        .rtl { direction: rtl; font-family: 'Cairo', sans-serif; }
+        
+        /* Admin Panel */
+        #admin-panel { display: none; background: rgba(0,0,0,0.95); z-index: 100; overflow-y: auto; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #333; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+
+        /* Particle Animation Background */
+        #particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            bottom: -50px;
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Image Placeholder Fallbacks */
+        img[src="assets/ui/logo.png"]:not([src]) { display: block; width: 200px; height: 100px; background: rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background Particles -->
+    <div id="particles-container"></div>
+
+    <div id="game-container"></div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col">
+        <div class="mb-8 z-20">
+             <img src="assets/ui/logo.png" id="ui-logo" alt="GAME LOGO" class="max-w-[280px] h-auto object-contain drop-shadow-lg animate-bounce">
+        </div>
+
+        <div class="bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl max-w-md w-full text-center relative border border-white/20">
+            <div class="absolute top-4 right-4 flex gap-2 z-20">
+                <button onclick="setLang('en')" class="px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded text-blue-800 font-bold">EN</button>
+                <button onclick="setLang('ar')" class="px-2 py-1 text-sm bg-green-100 hover:bg-green-200 rounded text-green-800 font-bold">عربي</button>
+            </div>
+            
+            <div class="space-y-4 text-left mt-4">
+                <div>
+                    <label id="lbl-name" class="block text-sm font-bold text-gray-700">Full Name</label>
+                    <input type="text" id="inp-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
+                </div>
+                <div>
+                    <label id="lbl-mobile" class="block text-sm font-bold text-gray-700">Mobile Number</label>
+                    <input type="tel" id="inp-mobile" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
+                </div>
+                
+                <div class="pt-4">
+                    <label id="lbl-char" class="block text-sm font-bold text-gray-700 mb-2">Choose Character</label>
+                    <div class="flex gap-4 justify-center">
+                        <div onclick="selectChar('rahal')" id="btn-rahal" class="cursor-pointer border-4 border-transparent hover:border-blue-400 rounded-lg p-2 bg-blue-50 w-1/2 transition-all duration-200 transform hover:scale-105">
+                            <div class="w-full aspect-square flex items-center justify-center overflow-hidden rounded mb-1 bg-blue-200">
+                                <img src="assets/ui/rahal_select.png" alt="Rahal" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div onclick="selectChar('rahala')" id="btn-rahala" class="cursor-pointer border-4 border-transparent hover:border-pink-400 rounded-lg p-2 bg-pink-50 w-1/2 transition-all duration-200 transform hover:scale-105">
+                            <div class="w-full aspect-square flex items-center justify-center overflow-hidden rounded mb-1 bg-pink-200">
+                                <img src="assets/ui/rahala_select.png" alt="Rahala" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="startGame()" id="btn-start" class="w-full bg-[#13647a] hover:bg-[#0f4f61] text-white py-3 rounded-lg font-bold transition transform hover:scale-105 shadow-lg mt-6">
+                    START ADVENTURE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="admin-panel" class="overlay interactive flex-col p-10">
+        <div class="w-full max-w-4xl bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
+            <div class="bg-gray-900 p-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Admin Dashboard</h2>
+                <button onclick="toggleAdmin()" class="text-gray-400 hover:text-white">✕ Close</button>
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-left text-sm text-gray-400"><tbody id="admin-table-body"></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / WIN SCREEN -->
+    <div id="game-over-screen" class="overlay interactive hidden flex-col bg-black bg-opacity-95 text-white overflow-y-auto py-10">
+        <h1 id="end-title" class="text-5xl font-bold mb-4 text-red-500">GAME OVER</h1>
+        <div class="text-2xl mb-4">Score: <span id="final-score" class="text-yellow-400">0</span></div>
+        
+        <!-- LEADERBOARD SECTION -->
+        <div class="w-full max-w-md bg-gray-800 rounded-lg p-4 mb-8 border border-gray-700 shadow-xl">
+            <h3 class="text-xl font-bold text-white mb-3 text-center border-b border-gray-600 pb-2">Top 5 Leaders</h3>
+            <table class="w-full text-left text-sm text-gray-300">
+                <thead class="bg-gray-900 text-gray-400 uppercase text-xs">
+                    <tr>
+                        <th class="px-4 py-2">Rank</th>
+                        <th class="px-4 py-2">Name</th>
+                        <th class="px-4 py-2 text-right">Score</th>
+                    </tr>
+                </thead>
+                <tbody id="gameover-leaderboard-body">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <button onclick="location.reload()" class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition transform hover:scale-105">Play Again</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIG & DATA
+        // ==========================================
+        const DEMO_MODE = false; 
+        
+        const LEVEL_NAMES = {
+            1: { en: "Masandam", ar: "مسندم" },
+            2: { en: "Marsa", ar: "مرسى" },
+            3: { en: "Bisat desert", ar: "صحراء بساط" },
+            4: { en: "Kamzar", ar: "كمزار" }
+        };
+
+        const LETTER_PATTERNS = {
+            'O': [" XXX ","X   X","X   X"," XXX "],
+            'Q': [" XXX ","X   X","X X X"," XXXX"],
+            'E': ["XXXXX","X    ","XXXX ","X    ","XXXXX"],
+            'P': ["XXXX ","X   X","XXXX ","X    ","X    "]
+        };
+
+        const GAME_CONFIG = {
+            gravity: 1600,
+            startSpeed: 350,  
+            maxSpeed: 1200,    
+            acceleration: 0.05, 
+            jumpForce: -900 
+        };
+
+        let userData = { name: "", mobile: "", character: "rahal", lang: "en" };
+        const DB_KEY = 'rahal_game_db';
+        const I18N = {
+            en: { name: "Full Name", mobile: "Mobile Number", char: "Choose Character", start: "START ADVENTURE", gameover: "GAME OVER", win: "YOU WON!", score: "Score" },
+            ar: { name: "الاسم الكامل", mobile: "رقم الجوال", char: "اختر الشخصية", start: "ابدأ المغامرة", gameover: "انتهت اللعبة", win: "لقد فزت!", score: "النتيجة" }
+        };
+
+        // ==========================================
+        // UI FUNCTIONS
+        // ==========================================
+        function setLang(l) { userData.lang = l; renderUI(); }
+        function selectChar(c) { userData.character = c; renderUI(); }
+        function renderUI() {
+            const t = I18N[userData.lang];
+            document.getElementById('lbl-name').innerText = t.name;
+            document.getElementById('lbl-mobile').innerText = t.mobile;
+            document.getElementById('lbl-char').innerText = t.char;
+            document.getElementById('btn-start').innerText = t.start;
+            const screen = document.getElementById('start-screen');
+            if(userData.lang === 'ar') screen.classList.add('rtl'); else screen.classList.remove('rtl');
+            document.getElementById('btn-rahal').classList.remove('border-blue-500', 'ring-2');
+            document.getElementById('btn-rahala').classList.remove('border-pink-500', 'ring-2');
+            if(userData.character === 'rahal') document.getElementById('btn-rahal').classList.add('border-blue-500', 'ring-2');
+            else document.getElementById('btn-rahala').classList.add('border-pink-500', 'ring-2');
+        }
+
+        function startGame() {
+            const n = document.getElementById('inp-name').value;
+            const m = document.getElementById('inp-mobile').value;
+            if(!n || !m) return alert(userData.lang === 'en' ? "Missing fields" : "بيانات ناقصة");
+            userData.name = n; userData.mobile = m;
+            document.getElementById('start-screen').style.display = 'none';
+            if(!document.getElementById('particles-container').innerHTML) createParticles();
+            new Phaser.Game({
+                type: Phaser.AUTO, parent: 'game-container',
+                width: window.innerWidth, height: window.innerHeight,
+                physics: { default: 'arcade', arcade: { gravity: { y: GAME_CONFIG.gravity }, debug: false } },
+                scene: MainScene, transparent: true
+            });
+        }
+
+        window.addEventListener('keydown', e => { 
+            if(e.ctrlKey && e.code === 'Space') { e.preventDefault(); toggleAdmin(); }
+        });
+
+        function toggleAdmin() {
+            const p = document.getElementById('admin-panel');
+            p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+            if(p.style.display === 'flex') {
+                const data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+                const html = data.sort((a,b)=>b.score-a.score).map(u => 
+                    `<tr class="border-b border-gray-700"><td class="p-2 text-white">${u.name}</td><td class="p-2">${u.mobile}</td><td class="p-2">${u.score}</td></tr>`
+                ).join('');
+                document.getElementById('admin-table-body').innerHTML = html || '<tr><td class="p-4">No data</td></tr>';
+            }
+        }
+        function saveScore(s) {
+            const d = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            d.push({ ...userData, score: s, date: new Date() });
+            localStorage.setItem(DB_KEY, JSON.stringify(d));
+        }
+        function renderGameOverLeaderboard() {
+            const data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            const top5 = data.sort((a,b)=>b.score-a.score).slice(0, 5);
+            const tbody = document.getElementById('gameover-leaderboard-body');
+            if(top5.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">No scores yet</td></tr>'; return; }
+            tbody.innerHTML = top5.map((u, i) => `
+                <tr class="border-b border-gray-700 bg-gray-800 bg-opacity-50 hover:bg-gray-700">
+                    <td class="px-4 py-2 font-bold text-gray-400">#${i+1}</td>
+                    <td class="px-4 py-2 text-white flex items-center gap-2"><span class="text-xs ${u.character === 'rahal' ? 'text-blue-400' : 'text-pink-400'}">●</span> ${u.name}</td>
+                    <td class="px-4 py-2 text-yellow-400 font-bold text-right">${u.score}</td>
+                </tr>`).join('');
+        }
+
+        // ==========================================
+        // PARTICLE SYSTEM (Background)
+        // ==========================================
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            const particleCount = 20;
+            for (let i = 0; i < particleCount; i++) {
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                const size = Math.random() * 20 + 10;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 10 + 5;
+                const delay = Math.random() * 5;
+                p.style.width = `${size}px`; p.style.height = `${size}px`; p.style.left = `${left}%`;
+                p.style.animationDuration = `${duration}s`; p.style.animationDelay = `${delay}s`;
+                container.appendChild(p);
+            }
+        }
+        createParticles();
+
+        // ==========================================
+        // PHASER ENGINE
+        // ==========================================
+        class MainScene extends Phaser.Scene {
+            constructor() {
+                super('MainScene');
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.distance = 0;
+                this.currentSpeed = GAME_CONFIG.startSpeed;
+                this.isGameOver = false;
+                
+                // Trackers
+                this.nextSpawnX = 0; 
+                this.lastObstacleX = -1000;
+                this.lastAirObstacleX = -1000;
+                this.lastPowerupTime = 0; 
+                this.lastOQEPTime = 0; 
+                
+                // Level Timer
+                this.gameStartTime = 0;
+                this.levelStartTime = 0; // Track time spent in current level
+                this.portalSpawned = false;
+                
+                // Coin Zone Logic
+                this.coinPatternBarrier = 0; 
+
+                // Jump Physics
+                this.hasDoubleJump = false;
+                this.jumpsUsed = 0;
+                this.jumpBufferTime = 0;
+            }
+
+            preload() {
+                const g = this.make.graphics();
+                // Round Particle
+                g.fillStyle(0xffffff); g.fillCircle(8,8,8); g.generateTexture('particle_round', 16, 16); g.clear();
+                // Star Particle
+                g.fillStyle(0xffffff); g.beginPath();
+                const points = 5, outer = 15, inner = 7;
+                for(let i=0; i<points*2; i++) {
+                    const r = (i%2 === 0) ? outer : inner;
+                    const a = (Math.PI / points) * i;
+                    const x = 16 + r * Math.sin(a);
+                    const y = 16 + r * Math.cos(a);
+                    if(i===0) g.moveTo(x,y); else g.lineTo(x,y);
+                }
+                g.closePath(); g.fillPath(); g.generateTexture('particle_star', 32, 32); g.clear();
+
+                if(DEMO_MODE) this.createDemoAssets();
+                else {
+                    this.load.image('life_icon', 'assets/ui/life_icon.png');
+                    ['rahal','rahala'].forEach(c => {
+                        this.load.image(`${c}_run_1`, `assets/characters/${c}_run_1.png`);
+                        this.load.image(`${c}_run_2`, `assets/characters/${c}_run_2.png`);
+                        this.load.image(`${c}_run_3`, `assets/characters/${c}_run_3.png`); 
+                        this.load.image(`${c}_run_4`, `assets/characters/${c}_run_4.png`); 
+                        this.load.image(`${c}_jump`, `assets/characters/${c}_jump.png`); 
+                        this.load.image(`${c}_hit`, `assets/characters/${c}_hit.png`);
+                        this.load.image(`${c}_fall`, `assets/characters/${c}_fall.png`);
+                    });
+                    this.load.image('shield_item', 'assets/powerups/shield_item.png');
+                    this.load.image('shield_overlay', 'assets/powerups/shield_overlay.png');
+                    this.load.image('magnet_item', 'assets/powerups/magnet_item.png');
+                    this.load.image('magnet_effect', 'assets/powerups/magnet_effect.png');
+                    this.load.image('doublejump_item', 'assets/powerups/doublejump_item.png'); 
+                    ['1','2','3'].forEach(i => this.load.image(`portal_${i}`, `assets/portal/portal_${i}.png`));
+                    for(let i=1; i<=5; i++) {
+                        this.load.image(`bg_${i}`, `assets/level${i}/bg.png`);
+                        this.load.image(`block_${i}`, `assets/level${i}/block.png`);
+                        this.load.image(`obstacle_${i}`, `assets/level${i}/obstacle.png`);
+                        this.load.image(`obstacle_air_${i}_1`, `assets/level${i}/obstacle_air_1.png`);
+                        this.load.image(`obstacle_air_${i}_2`, `assets/level${i}/obstacle_air_2.png`);
+                        this.load.image(`coin_${i}`, `assets/level${i}/coin.png`);
+                    }
+                }
+            }
+
+            create() {
+                this.gameStartTime = this.time.now;
+                this.levelStartTime = this.time.now;
+                this.lastPowerupTime = this.time.now; 
+                this.lastOQEPTime = this.time.now;
+                const c = userData.character;
+                
+                this.anims.create({ key: 'run', frames: [{ key: `${c}_run_1` }, { key: `${c}_run_2` }, { key: `${c}_run_3` }, { key: `${c}_run_4` }], frameRate: 12, repeat: -1 });
+                this.anims.create({ key: 'portal', frames: [{key:'portal_1'},{key:'portal_2'},{key:'portal_3'}], frameRate: 10, repeat: -1 });
+                for(let i=1; i<=5; i++) {
+                    this.anims.create({ key: `fly_${i}`, frames: [{ key: `obstacle_air_${i}_1` }, { key: `obstacle_air_${i}_2` }], frameRate: 6, repeat: -1, yoyo: true });
+                }
+
+                this.bg = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, `bg_${this.level}`).setOrigin(0,0).setScrollFactor(0);
+
+                this.platforms = this.physics.add.group({ immovable: true, allowGravity: false });
+                this.obstacles = this.physics.add.group({ allowGravity: false });
+                this.coins = this.physics.add.group({ allowGravity: false });
+                this.powerups = this.physics.add.group({ allowGravity: false });
+                this.portals = this.physics.add.group({ allowGravity: false });
+
+                this.player = this.physics.add.sprite(100, 0, `${c}_run_1`).setScale(0.4);
+                this.player.setCollideWorldBounds(true);
+                this.physics.world.setBoundsCollision(true, true, true, false);
+                this.player.play('run');
+                this.player.body.setSize(this.player.width*0.5, this.player.height*0.8);
+
+                this.shieldFx = this.add.sprite(0,0,'shield_overlay').setVisible(false).setAlpha(0.6);
+                this.magnetFx = this.add.sprite(0,0,'magnet_effect').setVisible(false).setAlpha(0.5);
+
+                // Initial Generation
+                this.nextSpawnX = 0;
+                this.createGroundSegment(20); 
+
+                this.physics.add.collider(this.player, this.platforms); 
+                this.physics.add.overlap(this.player, this.obstacles, this.hitObstacle, null, this);
+                this.physics.add.overlap(this.player, this.coins, (p,c)=> { this.collectCoin(p, c); }, null, this);
+                this.physics.add.overlap(this.player, this.powerups, this.collectPowerup, null, this);
+                this.physics.add.overlap(this.player, this.portals, this.enterPortal, null, this);
+
+                this.input.keyboard.on('keydown-SPACE', this.tryJump, this);
+                this.input.on('pointerdown', this.tryJump, this);
+                this.input.keyboard.on('keyup-SPACE', this.cutJump, this);
+                this.input.on('pointerup', this.cutJump, this);
+
+                this.createHUD();
+                this.showLevelName();
+            }
+
+            update() {
+                if(this.isGameOver) return;
+
+                if(this.player.body.touching.down) {
+                    this.jumpsUsed = 0;
+                    if (this.time.now < this.jumpBufferTime) {
+                        this.doJump();
+                        this.jumpBufferTime = 0;
+                    }
+                }
+
+                if (!this.player.body.touching.down) {
+                    this.player.setTexture(`${userData.character}_jump`);
+                } else {
+                    if (this.player.anims.currentAnim?.key !== 'run') this.player.play('run', true);
+                }
+
+                if(this.currentSpeed < GAME_CONFIG.maxSpeed) this.currentSpeed += GAME_CONFIG.acceleration;
+
+                this.bg.tilePositionX += (this.currentSpeed * 0.005);
+                const shift = this.currentSpeed * 0.016;
+
+                [this.platforms, this.obstacles, this.coins, this.powerups, this.portals].forEach(g => {
+                    g.children.iterate(child => {
+                        if(child) {
+                            child.x -= shift;
+                            if(child.x < -200) child.destroy();
+                        }
+                    });
+                });
+
+                this.nextSpawnX -= shift;
+                this.coinPatternBarrier -= shift;
+
+                if (this.nextSpawnX < this.scale.width + 100) {
+                    this.createGroundSegment(Phaser.Math.Between(10, 20));
+                }
+
+                if(this.hasShield) this.shieldFx.setPosition(this.player.x, this.player.y).setScale(this.player.scale * 1.5);
+                if(this.hasMagnet) {
+                    this.magnetFx.setPosition(this.player.x, this.player.y).setScale(this.player.scale * 2);
+                    this.coins.children.iterate(c => {
+                        if(c && Phaser.Math.Distance.Between(this.player.x,this.player.y,c.x,c.y)<400) this.physics.moveToObject(c,this.player,600);
+                    });
+                }
+
+                if(this.player.y > this.scale.height) this.takeDamage('fall');
+            }
+
+            tryJump() {
+                if (this.player.body.touching.down) {
+                    this.doJump();
+                } else {
+                    if (this.hasDoubleJump && this.jumpsUsed < 2) {
+                        this.doJump();
+                    } else {
+                        this.jumpBufferTime = this.time.now + 150; 
+                    }
+                }
+            }
+
+            doJump() {
+                this.player.setVelocityY(GAME_CONFIG.jumpForce);
+                this.jumpsUsed++;
+                if (this.jumpsUsed > 1) {
+                    const puff = this.add.circle(this.player.x, this.player.y + 20, 20, 0x00ffff, 0.5);
+                    this.tweens.add({targets:puff, scale:2, alpha:0, duration:200, onComplete:()=>puff.destroy()});
+                }
+            }
+
+            cutJump() {
+                if(this.player.body.velocity.y < -100) this.player.setVelocityY(this.player.body.velocity.y * 0.5);
+            }
+
+            // --- GENERATION LOGIC ---
+
+            createGroundSegment(count) {
+                const blockSize = 50; 
+                
+                // PORTAL SPAWN LOGIC: 45 SECONDS
+                // If 45s passed AND no portal active AND not already spawned one this level
+                if (this.time.now - this.levelStartTime > 45000 && this.portals.countActive() === 0 && !this.portalSpawned) {
+                    // Spawn Portal at the end of current segment (approx)
+                    const portalX = this.nextSpawnX + (blockSize * 2);
+                    const portal = this.portals.create(portalX, this.scale.height - 150, 'portal_1');
+                    portal.play('portal');
+                    portal.setDisplaySize(100, 150);
+                    portal.body.setAllowGravity(false);
+                    this.portalSpawned = true;
+                    // Force generate enough ground under portal
+                    count = 10; 
+                }
+
+                if (this.distance > 10 && Math.random() < 0.35 && !this.portalSpawned) {
+                    const gapSize = Phaser.Math.Between(3, 5);
+                    this.nextSpawnX += (gapSize * blockSize);
+                }
+
+                for (let i = 0; i < count; i++) {
+                    const x = this.nextSpawnX;
+                    const y = this.scale.height - 50;
+
+                    const block = this.platforms.create(x, y, `block_${this.level}`);
+                    block.setDisplaySize(blockSize, blockSize).refreshBody();
+
+                    // Only spawn hazards if portal isn't imminent
+                    if (!this.portalSpawned) {
+                        if (Math.random() < 0.05) { 
+                            const type = Phaser.Math.Between(1, 3);
+                            this.spawnHangingPattern(type, x, y - 180);
+                        }
+                        if (Math.random() < 0.2) this.spawnItem(x, y - 25); // Increased Rate
+                    }
+
+                    this.nextSpawnX += blockSize;
+                }
+
+                this.distance += count;
+            }
+
+            spawnHangingPattern(type, startX, startY) {
+                const blockSize = 50;
+                if (type === 1) { 
+                    for(let i=0; i<3; i++) {
+                        const b = this.platforms.create(startX + (i*blockSize), startY, `block_${this.level}`);
+                        b.setDisplaySize(blockSize, blockSize).refreshBody();
+                        if(i===1 && Math.random()<0.5) this.spawnItem(b.x, b.y - 40);
+                    }
+                } else if (type === 2) { 
+                    for(let i=0; i<4; i++) {
+                        const b = this.platforms.create(startX + (i*blockSize), startY, `block_${this.level}`);
+                        b.setDisplaySize(blockSize, blockSize).refreshBody();
+                        if(i===2 && Math.random()<0.5) this.spawnItem(b.x, b.y - 40);
+                    }
+                } else if (type === 3) { 
+                    const b1 = this.platforms.create(startX, startY, `block_${this.level}`);
+                    b1.setDisplaySize(blockSize, blockSize).refreshBody();
+                    let currentX = startX + (blockSize) + 100;
+                    const step2Y = startY - 60; 
+                    for(let i=0; i<3; i++) {
+                        const b = this.platforms.create(currentX + (i*blockSize), step2Y, `block_${this.level}`);
+                        b.setDisplaySize(blockSize, blockSize).refreshBody();
+                    }
+                    currentX = currentX + (3*blockSize) + 100;
+                    const step3Y = step2Y - 60; 
+                    for(let i=0; i<4; i++) {
+                        const b = this.platforms.create(currentX + (i*blockSize), step3Y, `block_${this.level}`);
+                        b.setDisplaySize(blockSize, blockSize).refreshBody();
+                        if (i === 3) {
+                            const pTypes = ['shield', 'magnet', 'doublejump'];
+                            const pType = pTypes[Phaser.Math.Between(0,2)];
+                            this.powerups.create(b.x, b.y - 40, pType + '_item').setData('type', pType).setDisplaySize(40,40);
+                        }
+                    }
+                }
+            }
+
+            spawnItem(x, y) {
+                const r = Math.random();
+                const unsafe = Math.abs(x - this.lastObstacleX) < 250 || Math.abs(x - this.lastAirObstacleX) < 250; 
+
+                // OQEP CHECK (25s)
+                if (this.time.now - this.lastOQEPTime > 25000) {
+                    if (!unsafe && x > this.coinPatternBarrier) {
+                        this.spawnFullWordPattern(x, y - 200);
+                        this.lastOQEPTime = this.time.now;
+                        this.coinPatternBarrier = x + 800; 
+                        return; 
+                    }
+                }
+
+                // Increased Coin Probability (0.6)
+                if (r < 0.6) { 
+                    if (unsafe) return;
+                    if (x > this.coinPatternBarrier) {
+                        const coinRand = Math.random();
+                        if (coinRand < 0.15) {
+                            this.spawnCoinArc(x, y - 100);
+                            this.coinPatternBarrier = x + 200; 
+                        } else if (coinRand < 0.3) {
+                            this.spawnCoinLine(x, y - 60); 
+                            this.coinPatternBarrier = x + 200; 
+                        } else {
+                            this.spawnCoin(x, y - 60);
+                        }
+                    }
+                } 
+                else if (r < 0.7) { 
+                    this.lastObstacleX = x;
+                    const obs = this.obstacles.create(x, y - 15, `obstacle_${this.level}`);
+                    obs.setDisplaySize(40, 40);
+                } 
+                else if (r < 0.78) { 
+                    this.lastAirObstacleX = x;
+                    const obs = this.obstacles.create(x, y - 120, `obstacle_air_${this.level}_1`);
+                    obs.play(`fly_${this.level}`);
+                    obs.setDisplaySize(40, 40);
+                    this.tweens.add({targets: obs, y: obs.y + 20, yoyo: true, duration: 1000, repeat: -1});
+                }
+                else if (r < 0.85) { 
+                    const timeSinceLast = this.time.now - this.lastPowerupTime;
+                    const requiredInterval = Phaser.Math.Between(10000, 15000);
+                    if (this.time.now - this.gameStartTime < 5000) return;
+                    if (timeSinceLast < requiredInterval) return;
+                    
+                    this.lastPowerupTime = this.time.now;
+                    this.lastPowerupX = x;
+                    const pTypes = ['shield', 'magnet', 'doublejump'];
+                    const type = pTypes[Phaser.Math.Between(0, 2)];
+                    this.powerups.create(x, y, type + '_item').setData('type', type).setDisplaySize(40,40);
+                } 
+            }
+
+            spawnFullWordPattern(startX, startY) {
+                const word = ['O', 'Q', 'E', 'P'];
+                const spacingX = 30;
+                const spacingY = 30;
+                const letterSpacing = 180; 
+                word.forEach((char, index) => {
+                    const pattern = LETTER_PATTERNS[char];
+                    const letterOffsetX = index * letterSpacing;
+                    for (let r = 0; r < pattern.length; r++) {
+                        for (let c = 0; c < pattern[r].length; c++) {
+                            if (pattern[r][c] === 'X') {
+                                const coin = this.coins.create(startX + letterOffsetX + (c * spacingX), startY + (r * spacingY), `coin_${this.level}`);
+                                coin.setDisplaySize(20, 20);
+                                this.addCoinWiggle(coin);
+                            }
+                        }
+                    }
+                });
+            }
+
+            spawnCoinArc(startX, baseY) {
+                const radius = 60;
+                const steps = 5;
+                const stepAngle = Math.PI / (steps - 1);
+                for(let i=0; i<steps; i++) {
+                    const angle = Math.PI + (i * stepAngle); 
+                    const cX = startX + (i * 30);
+                    const cY = baseY + (Math.sin(angle) * radius);
+                    const coin = this.coins.create(cX, cY, `coin_${this.level}`);
+                    coin.setDisplaySize(25, 25);
+                    this.addCoinWiggle(coin);
+                }
+            }
+
+            spawnCoinLine(startX, startY) {
+                for(let i=0; i<5; i++) {
+                    const coin = this.coins.create(startX + (i*35), startY, `coin_${this.level}`);
+                    coin.setDisplaySize(25, 25);
+                    this.addCoinWiggle(coin);
+                }
+            }
+
+            spawnCoin(x, y) {
+                const coin = this.coins.create(x, y, `coin_${this.level}`);
+                coin.setDisplaySize(25, 25);
+                this.addCoinWiggle(coin);
+                this.tweens.add({ targets: coin, y: y - 10, yoyo: true, repeat: -1, duration: 800 + Math.random() * 400, ease: 'Sine.easeInOut' });
+            }
+
+            addCoinWiggle(coin) {
+                this.tweens.add({ targets: coin, angle: { from: -15, to: 15 }, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut' });
+            }
+
+            spawnParticles(x, y, type, color) {
+                const texture = type === 'round' ? 'particle_round' : 'particle_star';
+                const emitter = this.add.particles(x, y, texture, {
+                    speed: { min: 100, max: 200 }, angle: { min: 0, max: 360 }, scale: { start: 0.5, end: 0 }, lifespan: 500, tint: color, quantity: 10, emitting: false
+                });
+                emitter.explode();
+            }
+
+            collectCoin(player, coin) {
+                coin.destroy();
+                this.score += 1;
+                this.updateHUD();
+                this.spawnParticles(coin.x, coin.y, 'round', 0xffff00); 
+            }
+
+            collectPowerup(p, item) {
+                const type = item.getData('type');
+                item.destroy();
+                this.score += 1;
+                this.updateHUD();
+                let color = 0xffffff;
+                if (type === 'shield') color = 0x00ff00; 
+                else if (type === 'magnet') color = 0x9333ea; 
+                else if (type === 'doublejump') color = 0x00ffff; 
+                this.spawnParticles(p.x, p.y, 'round', color);
+                this.powerupIconUI.setTexture(type + '_item').setVisible(true);
+                this.powerupBarBg.setVisible(true);
+                this.powerupBar.setVisible(true).width = 100; 
+                if (this.powerupTween) this.powerupTween.stop();
+                this.powerupTween = this.tweens.add({
+                    targets: this.powerupBar, width: 0, duration: 5000,
+                    onComplete: () => {
+                        this.powerupIconUI.setVisible(false); this.powerupBarBg.setVisible(false); this.powerupBar.setVisible(false); this.hasDoubleJump = false; 
+                    }
+                });
+                if(type === 'shield') {
+                    this.hasShield = true; this.shieldFx.setVisible(true);
+                    this.time.delayedCall(5000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
+                } else if (type === 'magnet') {
+                    this.hasMagnet = true; this.magnetFx.setVisible(true);
+                    this.time.delayedCall(5000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
+                } else if (type === 'doublejump') {
+                    this.hasDoubleJump = true;
+                }
+            }
+
+            hitObstacle(p, o) {
+                if(this.hasShield) { o.destroy(); this.hasShield=false; this.shieldFx.setVisible(false); return; }
+                this.spawnParticles(p.x, p.y, 'star', 0xff0000); 
+                o.destroy();
+                this.takeDamage('hit');
+            }
+
+            takeDamage(type) {
+                this.lives--; 
+                this.score = Math.max(0, this.score - 5);
+                this.updateHUD();
+                this.cameras.main.shake(200, 0.01);
+                this.player.setTexture(`${userData.character}_${type==='hit'?'hit':'fall'}`);
+                if (type === 'fall') this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
+                if(this.lives <= 0) {
+                    this.isGameOver = true; this.physics.pause(); saveScore(this.score); renderGameOverLeaderboard();
+                    document.getElementById('final-score').innerText = this.score;
+                    document.getElementById('game-over-screen').classList.remove('hidden');
+                    document.getElementById('game-over-screen').style.display = 'flex';
+                } else {
+                    if(type === 'fall') { this.player.y = 0; this.player.setVelocityY(0); }
+                    this.time.delayedCall(500, () => { if(!this.isGameOver) this.player.play('run'); });
+                }
+            }
+
+            enterPortal(p, portal) {
+                // WIN CONDITION: Level 4 reached (Finish Level 4)
+                if(this.level === 4) {
+                    this.isGameOver = true;
+                    this.physics.pause();
+                    saveScore(this.score);
+                    renderGameOverLeaderboard();
+                    
+                    const title = document.getElementById('end-title');
+                    title.innerText = I18N[userData.lang].win;
+                    title.classList.remove('text-red-500');
+                    title.classList.add('text-green-500');
+                    
+                    document.getElementById('final-score').innerText = this.score;
+                    document.getElementById('game-over-screen').classList.remove('hidden');
+                    document.getElementById('game-over-screen').style.display = 'flex';
+                    return;
+                }
+
+                portal.destroy();
+                this.level++;
+                this.score += 5;
+                this.distance = 0;
+                
+                // SPEED UP PER LEVEL
+                this.currentSpeed = GAME_CONFIG.startSpeed + ((this.level - 1) * 100); 
+                
+                this.bg.setTexture(`bg_${this.level}`);
+                this.showLevelName();
+                
+                // Reset Level Timer
+                this.levelStartTime = this.time.now;
+                this.portalSpawned = false;
+            }
+
+            createHUD() {
+                this.hudContainer = this.add.container(0,0).setScrollFactor(0).setDepth(100);
+                this.lifeIcons = [];
+                for(let i=0; i<3; i++) {
+                    const icon = this.add.image(40 + (i*50), 40, 'life_icon').setDisplaySize(40,40);
+                    this.hudContainer.add(icon);
+                    this.lifeIcons.push(icon);
+                }
+                this.powerupIconUI = this.add.image(50, 90, 'shield_item').setDisplaySize(30,30).setVisible(false);
+                this.hudContainer.add(this.powerupIconUI);
+                this.powerupBarBg = this.add.rectangle(80, 90, 100, 12, 0x000000).setOrigin(0, 0.5).setVisible(false).setStrokeStyle(2, 0xffffff);
+                this.hudContainer.add(this.powerupBarBg);
+                this.powerupBar = this.add.rectangle(82, 90, 96, 8, 0x00ff00).setOrigin(0, 0.5).setVisible(false);
+                this.hudContainer.add(this.powerupBar);
+                const t = I18N[userData.lang];
+                this.scoreText = this.add.text(this.scale.width-40, 40, `${t.score}: 0`, { fontSize:'32px', fontFamily: userData.lang==='ar'?'Cairo':'Roboto', color:'#fff', stroke:'#000', strokeThickness:4 }).setOrigin(1,0.5);
+                this.hudContainer.add(this.scoreText);
+            }
+
+            updateHUD() {
+                this.scoreText.setText(`${I18N[userData.lang].score}: ${this.score}`);
+                this.lifeIcons.forEach((icon,i) => icon.setVisible(i < this.lives));
+            }
+
+            showLevelName() {
+                const lvlInfo = LEVEL_NAMES[this.level];
+                const txt = lvlInfo ? (userData.lang === 'ar' ? lvlInfo.ar : lvlInfo.en) : `Level ${this.level}`;
+                const t = this.add.text(this.scale.width/2, this.scale.height/2, txt, { fontSize:'64px', fontFamily: userData.lang === 'ar' ? 'Cairo' : 'Roboto', fontStyle:'bold', color:'#fff', stroke:'#000', strokeThickness:6 }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
+                this.tweens.add({ targets:t, alpha:1, duration:1000, hold:2000, yoyo:true, onComplete:()=>t.destroy() });
+            }
+
+            createDemoAssets() {
+                const g = this.make.graphics();
+                g.fillStyle(0xff0000); g.fillCircle(16,16,16); g.generateTexture('life_icon',32,32); g.clear();
+                g.fillStyle(0x00ff00); g.fillCircle(16,16,16); g.generateTexture('shield_item',32,32); g.lineStyle(4,0x00ff00); g.strokeCircle(32,32,30); g.generateTexture('shield_overlay',64,64); g.clear();
+                g.fillStyle(0x9333ea); g.fillRect(0,0,32,32); g.generateTexture('magnet_item',32,32); g.lineStyle(4,0x9333ea); g.strokeCircle(32,32,40); g.generateTexture('magnet_effect',80,80); g.clear();
+                g.fillStyle(0x00ffff); g.beginPath(); g.moveTo(0,32); g.lineTo(32,0); g.lineTo(32,32); g.fillPath(); g.generateTexture('doublejump_item', 32, 32); g.clear();
+                [0x00ffff, 0x00aaaa, 0x008888].forEach((c,i) => { g.fillStyle(c); g.fillRect(0,0,64,100); g.generateTexture(`portal_${i+1}`,64,100); g.clear(); });
+                const drawChar = (k,c) => { 
+                    g.fillStyle(c); g.fillRect(0,0,64,128); g.generateTexture(`${k}_run_1`,64,128);
+                    g.fillStyle(c==0x3b82f6?0x1d4ed8:0xbe185d); g.fillRect(0,0,64,128); g.generateTexture(`${k}_run_2`,64,128);
+                    g.fillStyle(c); g.fillRect(0,0,64,128); g.generateTexture(`${k}_run_3`,64,128); 
+                    g.fillStyle(c==0x3b82f6?0x1d4ed8:0xbe185d); g.fillRect(0,0,64,128); g.generateTexture(`${k}_run_4`,64,128); 
+                    g.fillStyle(0xffff00); g.fillRect(0,0,64,128); g.generateTexture(`${k}_jump`,64,128);
+                    g.fillStyle(0xff0000); g.fillRect(0,0,64,128); g.generateTexture(`${k}_hit`,64,128); g.generateTexture(`${k}_fall`,64,128); g.clear();
+                };
+                drawChar('rahal', 0x3b82f6); drawChar('rahala', 0xec4899);
+                const colors = [0x22c55e, 0xeab308, 0xf97316, 0xef4444, 0x6366f1];
+                for(let i=1; i<=5; i++) {
+                    const c = colors[i-1];
+                    g.fillStyle(0x111111); g.fillRect(0,0,512,512); g.fillStyle(c,0.5); g.fillCircle(50,50,20); g.generateTexture(`bg_${i}`,512,512); g.clear();
+                    g.fillStyle(c); g.fillRect(0,0,100,100); g.lineStyle(2,0xffffff); g.strokeRect(0,0,100,100); g.generateTexture(`block_${i}`,100,100); g.clear();
+                    g.fillStyle(0xff0000); g.beginPath(); g.moveTo(0,50); g.lineTo(25,0); g.lineTo(50,50); g.fillPath(); g.generateTexture(`obstacle_${i}`,50,50); g.clear();
+                    g.fillStyle(0x550000); g.fillCircle(25,25,20); g.generateTexture(`obstacle_air_${i}_1`,50,50); g.clear();
+                    g.fillStyle(0x880000); g.fillCircle(25,25,20); g.generateTexture(`obstacle_air_${i}_2`,50,50); g.clear();
+                    g.fillStyle(0xffd700); g.fillCircle(10,10,10); g.generateTexture(`coin_${i}`,20,20); g.clear();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
