@@ -113,7 +113,7 @@
         // ==========================================
         // CONFIG & DATA
         // ==========================================
-        const DEMO_MODE = true; 
+        const DEMO_MODE = false; 
         
         // Portrait Resolution: 1080x1920
         const LOGICAL_WIDTH = 1080;
@@ -356,8 +356,8 @@
                 this.shieldFx = this.add.sprite(0,0,'shield_overlay').setVisible(false).setAlpha(0.6).setDisplaySize(BLOCK_SIZE*1.5, BLOCK_SIZE*1.5);
                 this.magnetFx = this.add.sprite(0,0,'magnet_effect').setVisible(false).setAlpha(0.5).setDisplaySize(BLOCK_SIZE*2, BLOCK_SIZE*2);
 
-                // Initial Generation (Start fresh)
-                this.createGroundSegment(15); // Create initial 15 blocks
+                this.nextSpawnX = 0;
+                this.createGroundSegment(20); 
 
                 // COLLIDE WITH SOLID GROUND & HANGING BLOCKS
                 this.physics.add.collider(this.player, this.groundSolids);
@@ -426,6 +426,7 @@
                     }
                 });
 
+                this.nextSpawnX -= shift;
                 this.coinPatternBarrier -= shift;
 
                 // GAPLESS GENERATION LOGIC: Find last block X
@@ -531,15 +532,19 @@
                 // PHYSICS BLOCK
                 const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
+                block.refreshBody(); // CRITICAL FIX: Refresh body size first
+                
+                // FORCE BODY SIZE to match, overriding potential unscaled image dimensions
                 block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
+                
                 block.body.immovable = true;
                 block.body.allowGravity = false;
                 block.body.checkCollision.left = false;
                 block.body.checkCollision.right = false;
-                block.refreshBody(); // CRITICAL FIX: Refresh body after size change
 
                 // DECOR LAYERS (No Physics)
                 for(let j=1; j<4; j++) {
+                    // GAP FIX: Overlap by 2 pixels to seal the seam
                     const y = topY + (j * BLOCK_SIZE) - 2;
                     const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
                     dBlock.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
@@ -559,8 +564,6 @@
                 this.distance++;
             }
 
-            // ... (Rest of spawn functions: spawnHangingPattern, spawnItem, etc.) ...
-            
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
                     for(let i=0; i<3; i++) {
@@ -663,8 +666,6 @@
                     p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
                 } 
             }
-            
-            // ... (Rest of functions: spawnFullWordPattern, spawnCoinArc, etc. remain the same) ...
             
             spawnFullWordPattern(startX, startY) {
                 const word = ['O', 'Q', 'E', 'P'];
