@@ -390,13 +390,14 @@
 
                 const isTouchingDown = this.player.body.touching.down;
 
-                if (isTouchingDown) {
+                if (isTouchingDown && !this.wasTouchingDown) {
                     this.jumpsUsed = 0;
                     if (this.time.now < this.jumpBufferTime) {
                         this.doJump();
                         this.jumpBufferTime = 0;
                     }
                 }
+                this.wasTouchingDown = isTouchingDown;
 
                 if (!isTouchingDown) {
                     this.player.setTexture(`${userData.character}_jump`);
@@ -409,7 +410,6 @@
                 this.bg.tilePositionX += (this.currentSpeed * 0.005);
                 const shift = this.currentSpeed * 0.016;
 
-                // Move Everything
                 [this.groundSolids, this.hangingBlocks, this.obstacles, this.coins, this.powerups, this.portals].forEach(g => {
                     g.children.iterate(child => {
                         if(child) {
@@ -480,8 +480,6 @@
             // Helper for initial generation
             createGroundSegment(count) {
                 let currentX = 0; // Start at 0
-                // Use generateGround logic but force startX
-                // Actually, duplicate minimal logic for init to ensure consistency
                 for(let i=0; i<count; i++) {
                     this.createBlockColumn(currentX, true); // Safe mode
                     currentX += (BLOCK_SIZE - 2);
@@ -538,8 +536,9 @@
                 block.body.allowGravity = false;
                 block.body.checkCollision.left = false;
                 block.body.checkCollision.right = false;
+                block.refreshBody(); // CRITICAL FIX: Refresh body after size change
 
-                // DECOR LAYERS
+                // DECOR LAYERS (No Physics)
                 for(let j=1; j<4; j++) {
                     const y = topY + (j * BLOCK_SIZE) - 2;
                     const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
