@@ -38,13 +38,10 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden">
-        <!-- MENU BACKGROUND -->
         <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60 z-0" alt="">
-
         <div class="mb-8 z-20 relative">
              <img src="assets/ui/logo.png" id="ui-logo" alt="GAME LOGO" class="max-w-[280px] h-auto object-contain drop-shadow-lg animate-bounce">
         </div>
-
         <div class="bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl max-w-md w-full text-center relative border border-white/20 m-4 z-20">
             <div class="absolute top-4 right-4 flex gap-2 z-20">
                 <button onclick="setLang('en')" class="px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded text-blue-800 font-bold">EN</button>
@@ -186,7 +183,6 @@
                 type: Phaser.AUTO, 
                 parent: 'game-container',
                 scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT },
-                // TILE BIAS 128 + FPS 120 PREVENTS TUNNELING
                 physics: { 
                     default: 'arcade', 
                     arcade: { 
@@ -336,7 +332,7 @@
 
                 this.bg = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, `bg_${this.level}`).setOrigin(0,0).setScrollFactor(0);
 
-                // GROUPS
+                // --- NEW GROUP STRUCTURE ---
                 this.groundSolids = this.physics.add.group({ immovable: true, allowGravity: false }); // TOP GROUND ONLY
                 this.hangingBlocks = this.physics.add.group({ immovable: true, allowGravity: false }); // HANGING PLATS
                 this.decorLayer = this.add.group(); 
@@ -345,10 +341,11 @@
                 this.powerups = this.physics.add.group({ allowGravity: false });
                 this.portals = this.physics.add.group({ allowGravity: false });
 
-                // SPAWN CHARACTER (Middle Left)
-                const spawnY = this.scale.height * 0.5; 
+                // SPAWN CHARACTER (Middle Left Drop)
+                const spawnY = this.scale.height * 0.5; // Middle of screen vertically
                 this.player = this.physics.add.sprite(200, spawnY, `${c}_run_1`);
                 this.player.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
+                // COLLISION FIX: Explicitly sizing and offsetting to ensure solid ground contact
                 this.player.body.setSize(BLOCK_SIZE * 0.5, BLOCK_SIZE * 0.9);
                 this.player.body.setOffset(BLOCK_SIZE * 0.25, BLOCK_SIZE * 0.1);
                 
@@ -360,9 +357,9 @@
                 this.magnetFx = this.add.sprite(0,0,'magnet_effect').setVisible(false).setAlpha(0.5).setDisplaySize(BLOCK_SIZE*2, BLOCK_SIZE*2);
 
                 // Initial Generation (Start fresh)
-                this.createGroundSegment(20); 
+                this.createGroundSegment(15); // Create initial 15 blocks
 
-                // COLLISION
+                // COLLIDE WITH SOLID GROUND & HANGING BLOCKS
                 this.physics.add.collider(this.player, this.groundSolids);
                 this.physics.add.collider(this.player, this.hangingBlocks);
                 
@@ -379,6 +376,7 @@
                 this.createHUD();
                 this.showLevelName();
 
+                // SPAWN INVINCIBILITY
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
@@ -392,14 +390,13 @@
 
                 const isTouchingDown = this.player.body.touching.down;
 
-                if (isTouchingDown && !this.wasTouchingDown) {
+                if (isTouchingDown) {
                     this.jumpsUsed = 0;
                     if (this.time.now < this.jumpBufferTime) {
                         this.doJump();
                         this.jumpBufferTime = 0;
                     }
                 }
-                this.wasTouchingDown = isTouchingDown;
 
                 if (!isTouchingDown) {
                     this.player.setTexture(`${userData.character}_jump`);
@@ -421,6 +418,7 @@
                         }
                     });
                 });
+                
                 this.decorLayer.children.iterate(child => {
                     if(child) {
                         child.x -= shift;
@@ -430,15 +428,15 @@
 
                 this.coinPatternBarrier -= shift;
 
-                // GENERATION LOGIC: Check rightmost ground block
+                // GAPLESS GENERATION LOGIC: Find last block X
                 let rightmostX = -1000;
                 this.groundSolids.children.iterate(child => {
                     if (child.x > rightmostX) rightmostX = child.x;
                 });
-
-                // Spawn if we need more ground (Screen width + buffer)
+                
+                // If the rightmost block is entering the screen buffer zone, spawn attached to it
                 if (rightmostX < this.scale.width + 200) {
-                    // Start spawning from the end of the last block + overlap
+                    // Start next segment exactly where the last one ended + overlap
                     this.generateGround(rightmostX + (BLOCK_SIZE - 2)); 
                 }
 
@@ -478,33 +476,32 @@
             cutJump() {
                 if(this.player.body.velocity.y < -100) this.player.setVelocityY(this.player.body.velocity.y * 0.5);
             }
-
-            // Initialization helper
+            
+            // Helper for initial generation
             createGroundSegment(count) {
-                // Initialize starting at 0
-                let currentX = 0;
+                let currentX = 0; // Start at 0
+                // Use generateGround logic but force startX
+                // Actually, duplicate minimal logic for init to ensure consistency
                 for(let i=0; i<count; i++) {
-                    this.createBlockColumn(currentX);
+                    this.createBlockColumn(currentX, true); // Safe mode
                     currentX += (BLOCK_SIZE - 2);
                 }
             }
 
-            // Infinite Generator
+            // Infinite Generator attached to anchors
             generateGround(startX) {
-                // Determine if we spawn a gap
+                // Determine if we spawn a gap (Pit)
                 let makeGap = false;
                 if (this.distance > 10 && Math.random() < 0.35 && !this.portalSpawned) {
                     makeGap = true;
                 }
 
-                // If gap, skip X forward
                 let currentX = startX;
                 if (makeGap) {
                     const gapSize = Phaser.Math.Between(3, 5);
                     currentX += (gapSize * BLOCK_SIZE);
                 }
 
-                // Spawn a segment of random length
                 const segmentLength = Phaser.Math.Between(10, 20);
                 
                 // PORTAL CHECK
@@ -516,9 +513,9 @@
                     portal.body.setSize(BLOCK_SIZE * 2.5, BLOCK_SIZE * 2.5);
                     portal.body.setAllowGravity(false);
                     this.portalSpawned = true;
-                    // Force segment to support portal
+                    // Force segment
                     for(let i=0; i<12; i++) {
-                        this.createBlockColumn(currentX, true); // Safe mode (no obstacles)
+                        this.createBlockColumn(currentX, true);
                         currentX += (BLOCK_SIZE - 2);
                     }
                     return;
@@ -536,22 +533,19 @@
                 // PHYSICS BLOCK
                 const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                block.body.setSize(BLOCK_SIZE, BLOCK_SIZE);
+                block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
                 block.body.immovable = true;
                 block.body.allowGravity = false;
-                
-                // SMOOTH SLIDING: Disable side collisions
                 block.body.checkCollision.left = false;
                 block.body.checkCollision.right = false;
 
-                // DECOR
+                // DECOR LAYERS
                 for(let j=1; j<4; j++) {
                     const y = topY + (j * BLOCK_SIZE) - 2;
                     const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
                     dBlock.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                 }
 
-                // OBSTACLES & ITEMS
                 if (!this.portalSpawned && !safeMode) {
                     // Safe start check
                     if (this.time.now - this.gameStartTime > this.safeStartDuration) {
@@ -566,38 +560,35 @@
                 this.distance++;
             }
 
-            // ... (Rest of spawn functions: spawnHangingPattern, spawnItem, etc. stay the same but ensure 0.5x hitboxes) ...
-            // [Included in previous steps but ensuring 0.5x logic here]
-
+            // ... (Rest of spawn functions: spawnHangingPattern, spawnItem, etc.) ...
+            
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
                     for(let i=0; i<3; i++) {
                         const b = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
-                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
-                        b.body.immovable = true; b.body.allowGravity = false;
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody(); 
                         if(i===1 && Math.random()<0.5) this.spawnItem(b.x, b.y - BLOCK_SIZE);
                     }
                 } else if (type === 2) { 
                     for(let i=0; i<4; i++) {
                         const b = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
-                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
-                        b.body.immovable = true; b.body.allowGravity = false;
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody(); 
                         if(i===2 && Math.random()<0.5) this.spawnItem(b.x, b.y - BLOCK_SIZE);
                     }
                 } else if (type === 3) { 
                     const b1 = this.hangingBlocks.create(startX, startY, `block_${this.level}`);
-                    b1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b1.body.immovable = true; b1.body.allowGravity = false;
+                    b1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b1.body.immovable = true; b1.body.allowGravity = false; b1.refreshBody(); 
                     let currentX = startX + BLOCK_SIZE + 200;
                     const step2Y = startY - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<3; i++) {
                         const b = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step2Y, `block_${this.level}`);
-                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false;
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody();
                     }
                     currentX = currentX + (3*BLOCK_SIZE) + 200;
                     const step3Y = step2Y - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<4; i++) {
                         const b = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step3Y, `block_${this.level}`);
-                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false;
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody();
                         if (i === 3) {
                             const pTypes = ['shield', 'magnet', 'doublejump'];
                             const pType = pTypes[Phaser.Math.Between(0,2)];
@@ -610,6 +601,7 @@
 
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
+
                 const r = Math.random();
                 const unsafe = Math.abs(x - this.lastObstacleX) < BLOCK_SIZE*3 || Math.abs(x - this.lastAirObstacleX) < BLOCK_SIZE*3; 
 
@@ -641,8 +633,8 @@
                     this.lastObstacleX = x;
                     const obsY = y - (BLOCK_SIZE * 0.3);
                     const obs = this.obstacles.create(x, obsY, `obstacle_${this.level}`); 
+                    // REDUCED OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
-                    // 0.5x HITBOX
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
@@ -651,8 +643,8 @@
                     this.lastAirObstacleX = x;
                     const obs = this.obstacles.create(x, y - (BLOCK_SIZE * 2.0), `obstacle_air_${this.level}_1`);
                     obs.play(`fly_${this.level}`);
+                    // REDUCED AIR OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
-                    // 0.5x HITBOX
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
@@ -661,6 +653,7 @@
                 else if (r < 0.85) { 
                     const timeSinceLast = this.time.now - this.lastPowerupTime;
                     const requiredInterval = Phaser.Math.Between(10000, 15000);
+                    if (this.time.now - this.gameStartTime < 5000) return;
                     if (timeSinceLast < requiredInterval) return;
                     
                     this.lastPowerupTime = this.time.now;
