@@ -539,8 +539,7 @@
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                 block.refreshBody(); // CRITICAL FIX: Refresh body size first
                 
-                // FORCE BODY SIZE to match, overriding potential unscaled image dimensions
-                block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
+                // Removed manual setSize to ensure hitbox matches visual exactly
                 
                 block.body.immovable = true;
                 block.body.allowGravity = false;
