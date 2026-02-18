@@ -26,15 +26,37 @@
         #particles-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; pointer-events: none; }
         .particle { position: absolute; background: rgba(255, 255, 255, 0.1); border-radius: 50%; bottom: -50px; animation: floatUp linear infinite; }
         @keyframes floatUp { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; } }
+        
         /* Fallbacks */
         img[src="assets/ui/logo.png"]:not([src]) { display: block; width: 200px; height: 100px; background: rgba(0,0,0,0.1); }
         img[src="assets/ui/menu.png"]:not([src]) { background-color: #13647a; }
+
+        /* Mute Button */
+        #mute-btn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            display: none; /* Hidden until game starts */
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
 
     <div id="particles-container"></div>
     <div id="game-container"></div>
+    <button id="mute-btn" onclick="toggleMute()" class="interactive">🔊</button>
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden">
@@ -49,13 +71,11 @@
             </div>
             <div class="space-y-4 text-left mt-4">
                 <div>
-                    <label id="lbl-name" class="block text-sm font-bold text-gray-700">Full Name</label>
+                    <label id="lbl-name" class="block text-sm font-bold text-gray-700">Name</label>
                     <input type="text" id="inp-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
                 </div>
-                <div>
-                    <label id="lbl-mobile" class="block text-sm font-bold text-gray-700">Mobile Number</label>
-                    <input type="tel" id="inp-mobile" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
-                </div>
+                <!-- Removed Mobile Number -->
+                
                 <div class="pt-4">
                     <label id="lbl-char" class="block text-sm font-bold text-gray-700 mb-2">Choose Character</label>
                     <div class="flex gap-4 justify-center">
@@ -120,7 +140,7 @@
         const LOGICAL_HEIGHT = 1920;
         const BLOCK_SIZE = 135; 
 
-        // CALCULATE FIXED GROUND Y (Rounded)
+        // CALCULATE FIXED GROUND Y
         const GROUND_Y = Math.floor(LOGICAL_HEIGHT - (BLOCK_SIZE * 3.5));
         
         const LEVEL_NAMES = {
@@ -128,13 +148,6 @@
             2: { en: "Marsa", ar: "مرسى" },
             3: { en: "Bisat desert", ar: "صحراء بساط" },
             4: { en: "Kamzar", ar: "كمزار" }
-        };
-
-        const LETTER_PATTERNS = {
-            'O': [" XXX ","X   X","X   X"," XXX "],
-            'Q': [" XXX ","X   X","X X X"," XXXX"],
-            'E': ["XXXXX","X    ","XXXX ","X    ","XXXXX"],
-            'P': ["XXXX ","X   X","XXXX ","X    ","X    "]
         };
 
         const GAME_CONFIG = {
@@ -148,9 +161,12 @@
         let userData = { name: "", mobile: "", character: "rahal", lang: "en" };
         const DB_KEY = 'rahal_game_db';
         const I18N = {
-            en: { name: "Full Name", mobile: "Mobile Number", char: "Choose Character", start: "START ADVENTURE", gameover: "GAME OVER", win: "YOU WON!", score: "Score" },
-            ar: { name: "الاسم الكامل", mobile: "رقم الجوال", char: "اختر الشخصية", start: "ابدأ المغامرة", gameover: "انتهت اللعبة", win: "لقد فزت!", score: "النتيجة" }
+            en: { name: "Name", char: "Choose Character", start: "START ADVENTURE", gameover: "GAME OVER", win: "YOU WON!", score: "Score" },
+            ar: { name: "الاسم", char: "اختر الشخصية", start: "ابدأ المغامرة", gameover: "انتهت اللعبة", win: "لقد فزت!", score: "النتيجة" }
         };
+
+        let gameInstance = null;
+        let isMuted = false;
 
         // ==========================================
         // UI FUNCTIONS
@@ -160,7 +176,6 @@
         function renderUI() {
             const t = I18N[userData.lang];
             document.getElementById('lbl-name').innerText = t.name;
-            document.getElementById('lbl-mobile').innerText = t.mobile;
             document.getElementById('lbl-char').innerText = t.char;
             document.getElementById('btn-start').innerText = t.start;
             const screen = document.getElementById('start-screen');
@@ -173,13 +188,13 @@
 
         function startGame() {
             const n = document.getElementById('inp-name').value;
-            const m = document.getElementById('inp-mobile').value;
-            if(!n || !m) return alert(userData.lang === 'en' ? "Missing fields" : "بيانات ناقصة");
-            userData.name = n; userData.mobile = m;
+            if(!n) return alert(userData.lang === 'en' ? "Missing Name" : "الاسم مطلوب");
+            userData.name = n;
             document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('mute-btn').style.display = 'flex';
             if(!document.getElementById('particles-container').innerHTML) createParticles();
             
-            new Phaser.Game({
+            gameInstance = new Phaser.Game({
                 type: Phaser.AUTO, 
                 parent: 'game-container',
                 scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT },
@@ -196,6 +211,12 @@
             });
         }
 
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
+            if(gameInstance && gameInstance.sound) gameInstance.sound.mute = isMuted;
+        }
+
         window.addEventListener('keydown', e => { 
             if(e.ctrlKey && e.code === 'Space') { e.preventDefault(); toggleAdmin(); }
         });
@@ -205,7 +226,7 @@
             p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
             if(p.style.display === 'flex') {
                 const data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-                const html = data.sort((a,b)=>b.score-a.score).map(u => `<tr class="border-b border-gray-700"><td class="p-2 text-white">${u.name}</td><td class="p-2">${u.mobile}</td><td class="p-2">${u.score}</td></tr>`).join('');
+                const html = data.sort((a,b)=>b.score-a.score).map(u => `<tr class="border-b border-gray-700"><td class="p-2 text-white">${u.name}</td><td class="p-2">${u.mobile||'-'}</td><td class="p-2">${u.score}</td></tr>`).join('');
                 document.getElementById('admin-table-body').innerHTML = html || '<tr><td class="p-4">No data</td></tr>';
             }
         }
@@ -254,7 +275,6 @@
                 this.lastObstacleX = -1000;
                 this.lastAirObstacleX = -1000;
                 this.lastPowerupTime = 0; 
-                this.lastOQEPTime = 0; 
                 
                 this.gameStartTime = 0;
                 this.levelStartTime = 0; 
@@ -313,14 +333,29 @@
                         this.load.image(`obstacle_air_${i}_2`, `assets/level${i}/obstacle_air_2.png`);
                         this.load.image(`coin_${i}`, `assets/level${i}/coin.png`);
                     }
+                    
+                    // AUDIO
+                    this.load.audio('bgm', 'assets/audio/gamebg.mp3');
+                    this.load.audio('sfx_coin', 'assets/audio/coin.wav');
+                    this.load.audio('sfx_power', 'assets/audio/power.mp3');
+                    this.load.audio('sfx_hit', 'assets/audio/hit.mp3');
                 }
             }
 
             create() {
+                // Audio
+                if (!DEMO_MODE) {
+                    this.sound.stopAll();
+                    this.bgMusic = this.sound.add('bgm', { loop: true, volume: 0.5 });
+                    this.bgMusic.play();
+                    this.coinSound = this.sound.add('sfx_coin', { volume: 0.6 });
+                    this.powerSound = this.sound.add('sfx_power', { volume: 0.8 });
+                    this.hitSound = this.sound.add('sfx_hit', { volume: 0.8 });
+                }
+
                 this.gameStartTime = this.time.now;
                 this.levelStartTime = this.time.now;
                 this.lastPowerupTime = this.time.now; 
-                this.lastOQEPTime = this.time.now;
                 this.isInvincible = true; 
                 this.isStunned = false;
                 const c = userData.character;
@@ -333,24 +368,18 @@
 
                 this.bg = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, `bg_${this.level}`).setOrigin(0,0).setScrollFactor(0);
 
-                // --- NEW GROUP STRUCTURE ---
-                this.groundSolids = this.physics.add.group({ immovable: true, allowGravity: false }); // TOP GROUND ONLY
-                this.hangingBlocks = this.physics.add.group({ immovable: true, allowGravity: false }); // HANGING PLATS
+                this.groundSolids = this.physics.add.group({ immovable: true, allowGravity: false });
+                this.hangingBlocks = this.physics.add.group({ immovable: true, allowGravity: false });
                 this.decorLayer = this.add.group(); 
                 this.obstacles = this.physics.add.group({ allowGravity: false });
                 this.coins = this.physics.add.group({ allowGravity: false });
                 this.powerups = this.physics.add.group({ allowGravity: false });
                 this.portals = this.physics.add.group({ allowGravity: false });
 
-                // SPAWN CHARACTER (Middle Left Drop)
-                const spawnY = this.scale.height * 0.5; // Middle of screen vertically
+                const spawnY = this.scale.height * 0.5; 
                 this.player = this.physics.add.sprite(200, spawnY, `${c}_run_1`);
                 this.player.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                
-                // CRITICAL FIX: Refresh body size to match scaled display size
                 this.player.refreshBody();
-                
-                // Then adjust hitbox
                 this.player.body.setSize(BLOCK_SIZE * 0.5, BLOCK_SIZE * 0.9);
                 this.player.body.setOffset(BLOCK_SIZE * 0.25, BLOCK_SIZE * 0.1);
                 
@@ -364,7 +393,6 @@
                 this.nextSpawnX = 0;
                 this.createGroundSegment(20); 
 
-                // COLLIDE WITH SOLID GROUND & HANGING BLOCKS
                 this.physics.add.collider(this.player, this.groundSolids);
                 this.physics.add.collider(this.player, this.hangingBlocks);
                 
@@ -381,7 +409,6 @@
                 this.createHUD();
                 this.showLevelName();
 
-                // SPAWN INVINCIBILITY
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
@@ -391,7 +418,11 @@
             update() {
                 if(this.isGameOver) return;
 
-                if (this.isStunned) return;
+                // Stop updates during stun
+                if (this.isStunned) {
+                    this.player.setTexture(`${userData.character}_hit`);
+                    return;
+                }
 
                 const isTouchingDown = this.player.body.touching.down;
 
@@ -431,18 +462,14 @@
                     }
                 });
 
-                this.nextSpawnX -= shift;
                 this.coinPatternBarrier -= shift;
 
-                // GAPLESS GENERATION LOGIC: Find last block X
                 let rightmostX = -1000;
                 this.groundSolids.children.iterate(child => {
                     if (child.x > rightmostX) rightmostX = child.x;
                 });
                 
-                // If the rightmost block is entering the screen buffer zone, spawn attached to it
                 if (rightmostX < this.scale.width + 200) {
-                    // Start next segment exactly where the last one ended + overlap
                     this.generateGround(rightmostX + (BLOCK_SIZE - 2)); 
                 }
 
@@ -483,32 +510,26 @@
                 if(this.player.body.velocity.y < -100) this.player.setVelocityY(this.player.body.velocity.y * 0.5);
             }
             
-            // Helper for initial generation
             createGroundSegment(count) {
-                let currentX = 0; // Start at 0
+                let currentX = 0; 
                 for(let i=0; i<count; i++) {
-                    this.createBlockColumn(currentX, true); // Safe mode
+                    this.createBlockColumn(currentX, true); 
                     currentX += (BLOCK_SIZE - 2);
                 }
             }
 
-            // Infinite Generator attached to anchors
             generateGround(startX) {
-                // Determine if we spawn a gap (Pit)
                 let makeGap = false;
                 if (this.distance > 10 && Math.random() < 0.35 && !this.portalSpawned) {
                     makeGap = true;
                 }
-
                 let currentX = startX;
                 if (makeGap) {
                     const gapSize = Phaser.Math.Between(3, 5);
                     currentX += (gapSize * BLOCK_SIZE);
                 }
-
                 const segmentLength = Phaser.Math.Between(10, 20);
                 
-                // PORTAL CHECK
                 if (this.time.now - this.levelStartTime > 45000 && this.portals.countActive() === 0 && !this.portalSpawned) {
                     const portalX = currentX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, GROUND_Y - (BLOCK_SIZE * 1.25), 'portal_1');
@@ -517,7 +538,6 @@
                     portal.body.setSize(BLOCK_SIZE * 2.5, BLOCK_SIZE * 2.5);
                     portal.body.setAllowGravity(false);
                     this.portalSpawned = true;
-                    // Force segment
                     for(let i=0; i<12; i++) {
                         this.createBlockColumn(currentX, true);
                         currentX += (BLOCK_SIZE - 2);
@@ -533,29 +553,22 @@
 
             createBlockColumn(x, safeMode) {
                 const topY = Math.floor(GROUND_Y);
-                
-                // PHYSICS BLOCK
                 const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                block.refreshBody(); // CRITICAL FIX: Refresh body size first
-                
-                // Removed manual setSize to ensure hitbox matches visual exactly
-                
+                block.refreshBody(); 
+                block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
                 block.body.immovable = true;
                 block.body.allowGravity = false;
                 block.body.checkCollision.left = false;
                 block.body.checkCollision.right = false;
 
-                // DECOR LAYERS (No Physics)
                 for(let j=1; j<4; j++) {
-                    // GAP FIX: Overlap by 2 pixels to seal the seam
                     const y = topY + (j * BLOCK_SIZE) - 2;
                     const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
                     dBlock.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                 }
 
                 if (!this.portalSpawned && !safeMode) {
-                    // Safe start check
                     if (this.time.now - this.gameStartTime > this.safeStartDuration) {
                         if (Math.random() < 0.05) { 
                             const type = Phaser.Math.Between(1, 3);
@@ -567,8 +580,6 @@
                 
                 this.distance++;
             }
-
-            // ... (Rest of spawn functions: spawnHangingPattern, spawnItem, etc.) ...
             
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
@@ -609,31 +620,25 @@
 
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
-
                 const r = Math.random();
                 const unsafe = Math.abs(x - this.lastObstacleX) < BLOCK_SIZE*3 || Math.abs(x - this.lastAirObstacleX) < BLOCK_SIZE*3; 
-
-                if (this.time.now - this.lastOQEPTime > 25000) {
-                    if (!unsafe && x > this.coinPatternBarrier) {
-                        this.spawnFullWordPattern(x, y - (BLOCK_SIZE * 2));
-                        this.lastOQEPTime = this.time.now;
-                        this.coinPatternBarrier = x + (BLOCK_SIZE * 15); 
-                        return; 
-                    }
-                }
 
                 if (r < 0.6) { 
                     if (unsafe) return;
                     if (x > this.coinPatternBarrier) {
                         const coinRand = Math.random();
-                        if (coinRand < 0.15) {
+                        if (coinRand < 0.25) {
                             this.spawnCoinArc(x, y - (BLOCK_SIZE));
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else if (coinRand < 0.3) {
+                        } else if (coinRand < 0.5) {
                             this.spawnCoinLine(x, y - (BLOCK_SIZE*0.5)); 
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
+                        } else if (coinRand < 0.75) {
+                            this.spawnCoinZigZag(x, y - (BLOCK_SIZE*0.5));
+                            this.coinPatternBarrier = x + (BLOCK_SIZE * 5);
                         } else {
-                            this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
+                            this.spawnCoinTriangle(x, y - (BLOCK_SIZE * 1.5));
+                            this.coinPatternBarrier = x + (BLOCK_SIZE * 3);
                         }
                     }
                 } 
@@ -641,7 +646,6 @@
                     this.lastObstacleX = x;
                     const obsY = y - (BLOCK_SIZE * 0.3);
                     const obs = this.obstacles.create(x, obsY, `obstacle_${this.level}`); 
-                    // REDUCED OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
                     obs.refreshBody();
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
@@ -652,7 +656,6 @@
                     this.lastAirObstacleX = x;
                     const obs = this.obstacles.create(x, y - (BLOCK_SIZE * 2.0), `obstacle_air_${this.level}_1`);
                     obs.play(`fly_${this.level}`);
-                    // REDUCED AIR OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
                     obs.refreshBody();
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
@@ -665,9 +668,7 @@
                     const requiredInterval = Phaser.Math.Between(10000, 15000);
                     if (this.time.now - this.gameStartTime < 5000) return;
                     if (timeSinceLast < requiredInterval) return;
-                    
                     this.lastPowerupTime = this.time.now;
-                    this.lastPowerupX = x;
                     const pTypes = ['shield', 'magnet', 'doublejump'];
                     const type = pTypes[Phaser.Math.Between(0, 2)];
                     const p = this.powerups.create(x, y, type + '_item').setData('type', type);
@@ -675,28 +676,6 @@
                 } 
             }
             
-            // ... (Rest of functions: spawnFullWordPattern, spawnCoinArc, etc. remain the same) ...
-            
-            spawnFullWordPattern(startX, startY) {
-                const word = ['O', 'Q', 'E', 'P'];
-                const spacingX = BLOCK_SIZE * 0.4;
-                const spacingY = BLOCK_SIZE * 0.4;
-                const letterSpacing = BLOCK_SIZE * 2.5; 
-                word.forEach((char, index) => {
-                    const pattern = LETTER_PATTERNS[char];
-                    const letterOffsetX = index * letterSpacing;
-                    for (let r = 0; r < pattern.length; r++) {
-                        for (let c = 0; c < pattern[r].length; c++) {
-                            if (pattern[r][c] === 'X') {
-                                const coin = this.coins.create(startX + letterOffsetX + (c * spacingX), startY + (r * spacingY), `coin_${this.level}`);
-                                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); coin.refreshBody(); coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                                this.addCoinWiggle(coin);
-                            }
-                        }
-                    }
-                });
-            }
-
             spawnCoinArc(startX, baseY) {
                 const radius = BLOCK_SIZE;
                 const steps = 5;
@@ -723,13 +702,32 @@
                 }
             }
 
-            spawnCoin(x, y) {
-                const coin = this.coins.create(x, y, `coin_${this.level}`);
-                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                coin.refreshBody();
-                coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addCoinWiggle(coin);
-                this.tweens.add({ targets: coin, y: y - 20, yoyo: true, repeat: -1, duration: 800 + Math.random() * 400, ease: 'Sine.easeInOut' });
+            spawnCoinZigZag(startX, startY) {
+                const offsets = [0, -40, 0, -40, 0];
+                for(let i=0; i<5; i++) {
+                    const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.6)), startY + offsets[i], `coin_${this.level}`);
+                    coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
+                    coin.refreshBody();
+                    coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                    this.addCoinWiggle(coin);
+                }
+            }
+
+            spawnCoinTriangle(startX, startY) {
+                const topCoin = this.coins.create(startX + (BLOCK_SIZE*0.5), startY, `coin_${this.level}`);
+                topCoin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
+                topCoin.refreshBody(); topCoin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                this.addCoinWiggle(topCoin);
+
+                const b1 = this.coins.create(startX, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
+                b1.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
+                b1.refreshBody(); b1.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                this.addCoinWiggle(b1);
+
+                const b2 = this.coins.create(startX + BLOCK_SIZE, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
+                b2.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
+                b2.refreshBody(); b2.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                this.addCoinWiggle(b2);
             }
 
             addCoinWiggle(coin) {
@@ -749,6 +747,10 @@
                 this.score += 1;
                 this.updateHUD();
                 this.spawnParticles(coin.x, coin.y, 'round', 0xffff00); 
+                if(!DEMO_MODE && this.coinSound) {
+                    if(this.coinSound.isPlaying) this.coinSound.stop();
+                    this.coinSound.play();
+                }
             }
 
             collectPowerup(p, item) {
@@ -761,6 +763,9 @@
                 else if (type === 'magnet') color = 0x9333ea; 
                 else if (type === 'doublejump') color = 0x00ffff; 
                 this.spawnParticles(p.x, p.y, 'round', color);
+
+                if(!DEMO_MODE && this.powerSound) this.powerSound.play();
+
                 this.powerupIconUI.setTexture(type + '_item').setVisible(true);
                 this.powerupBarBg.setVisible(true);
                 this.powerupBar.setVisible(true).width = 100; 
@@ -786,6 +791,8 @@
                 if(this.hasShield) { o.destroy(); this.hasShield=false; this.shieldFx.setVisible(false); return; }
                 if(this.isInvincible) return; 
                 
+                if(!DEMO_MODE && this.hitSound) this.hitSound.play();
+
                 this.isStunned = true;
                 this.player.setTexture(`${userData.character}_hit`);
                 this.player.setVelocity(0,0);
@@ -818,16 +825,29 @@
                 this.lives--; 
                 this.score = Math.max(0, this.score - 5);
                 this.updateHUD();
+                
                 if (type === 'fall') {
                     this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
-                    this.gameOverSequence();
-                    return;
+                    if(!DEMO_MODE && this.hitSound) this.hitSound.play();
+                    
+                    if (this.lives > 0) {
+                        this.player.y = this.scale.height * 0.2; 
+                        this.player.setVelocity(0, 0);
+                        this.isInvincible = true;
+                        this.tweens.add({
+                            targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
+                            onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
+                        });
+                        return;
+                    }
                 }
+                
                 if(this.lives <= 0) this.gameOverSequence();
             }
             
             gameOverSequence() {
                 this.isGameOver = true; this.physics.pause(); saveScore(this.score); renderGameOverLeaderboard();
+                if(this.bgMusic) this.bgMusic.stop();
                 document.getElementById('final-score').innerText = this.score;
                 document.getElementById('game-over-screen').classList.remove('hidden');
                 document.getElementById('game-over-screen').style.display = 'flex';
@@ -836,6 +856,7 @@
             enterPortal(p, portal) {
                 if(this.level === 4) { // WIN
                     this.isGameOver = true; this.physics.pause(); saveScore(this.score); renderGameOverLeaderboard();
+                    if(this.bgMusic) this.bgMusic.stop();
                     const title = document.getElementById('end-title');
                     title.innerText = I18N[userData.lang].win; title.classList.remove('text-red-500'); title.classList.add('text-green-500');
                     document.getElementById('final-score').innerText = this.score;
