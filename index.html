@@ -443,7 +443,7 @@
 
                 if(this.currentSpeed < GAME_CONFIG.maxSpeed) this.currentSpeed += GAME_CONFIG.acceleration;
 
-                this.bg.tilePositionX += (this.currentSpeed * 0.005);
+                // this.bg.tilePositionX += (this.currentSpeed * 0.005); // Background static
                 const shift = this.currentSpeed * 0.016;
 
                 [this.groundSolids, this.hangingBlocks, this.obstacles, this.coins, this.powerups, this.portals].forEach(g => {
