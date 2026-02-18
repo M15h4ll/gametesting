@@ -74,7 +74,6 @@
                     <label id="lbl-name" class="block text-sm font-bold text-gray-700">Name</label>
                     <input type="text" id="inp-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
                 </div>
-                <!-- Removed Mobile Number -->
                 
                 <div class="pt-4">
                     <label id="lbl-char" class="block text-sm font-bold text-gray-700 mb-2">Choose Character</label>
@@ -140,7 +139,7 @@
         const LOGICAL_HEIGHT = 1920;
         const BLOCK_SIZE = 135; 
 
-        // CALCULATE FIXED GROUND Y
+        // CALCULATE FIXED GROUND Y (Rounded)
         const GROUND_Y = Math.floor(LOGICAL_HEIGHT - (BLOCK_SIZE * 3.5));
         
         const LEVEL_NAMES = {
@@ -148,6 +147,13 @@
             2: { en: "Marsa", ar: "مرسى" },
             3: { en: "Bisat desert", ar: "صحراء بساط" },
             4: { en: "Kamzar", ar: "كمزار" }
+        };
+
+        const LETTER_PATTERNS = {
+            'O': [" XXX ","X   X","X   X"," XXX "],
+            'Q': [" XXX ","X   X","X X X"," XXXX"],
+            'E': ["XXXXX","X    ","XXXX ","X    ","XXXXX"],
+            'P': ["XXXX ","X   X","XXXX ","X    ","X    "]
         };
 
         const GAME_CONFIG = {
@@ -275,6 +281,8 @@
                 this.lastObstacleX = -1000;
                 this.lastAirObstacleX = -1000;
                 this.lastPowerupTime = 0; 
+                this.lastOQEPTime = 0; 
+                this.lifePowerupSpawned = false; // Flag for single life powerup per level
                 
                 this.gameStartTime = 0;
                 this.levelStartTime = 0; 
@@ -295,8 +303,10 @@
             preload() {
                 const g = this.make.graphics();
                 g.fillStyle(0xffffff); g.fillCircle(16,16,16); g.generateTexture('particle_round', 32, 32); g.clear();
+                
+                // 5-Point Star
                 g.fillStyle(0xffffff); g.beginPath();
-                const points = 5, outer = 25, inner = 12;
+                let points = 5, outer = 25, inner = 12;
                 for(let i=0; i<points*2; i++) {
                     const r = (i%2 === 0) ? outer : inner;
                     const a = (Math.PI / points) * i;
@@ -305,6 +315,19 @@
                     if(i===0) g.moveTo(x,y); else g.lineTo(x,y);
                 }
                 g.closePath(); g.fillPath(); g.generateTexture('particle_star', 64, 64); g.clear();
+
+                // 4-Point Star (NEW for coins)
+                g.fillStyle(0xffffff); g.beginPath();
+                points = 4; outer = 20; inner = 8;
+                for(let i=0; i<points*2; i++) {
+                    const r = (i%2 === 0) ? outer : inner;
+                    const a = (Math.PI / points) * i;
+                    const x = 32 + r * Math.sin(a);
+                    const y = 32 + r * Math.cos(a);
+                    if(i===0) g.moveTo(x,y); else g.lineTo(x,y);
+                }
+                g.closePath(); g.fillPath(); g.generateTexture('particle_star_4', 64, 64); g.clear();
+
 
                 if(DEMO_MODE) this.createDemoAssets();
                 else {
@@ -356,8 +379,10 @@
                 this.gameStartTime = this.time.now;
                 this.levelStartTime = this.time.now;
                 this.lastPowerupTime = this.time.now; 
+                this.lastOQEPTime = this.time.now;
                 this.isInvincible = true; 
                 this.isStunned = false;
+                this.lifePowerupSpawned = false;
                 const c = userData.character;
                 
                 this.anims.create({ key: 'run', frames: [{ key: `${c}_run_1` }, { key: `${c}_run_2` }, { key: `${c}_run_3` }, { key: `${c}_run_4` }], frameRate: 12, repeat: -1 });
@@ -368,17 +393,20 @@
 
                 this.bg = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, `bg_${this.level}`).setOrigin(0,0).setScrollFactor(0);
 
-                this.groundSolids = this.physics.add.group({ immovable: true, allowGravity: false });
-                this.hangingBlocks = this.physics.add.group({ immovable: true, allowGravity: false });
+                // --- NEW GROUP STRUCTURE ---
+                this.groundSolids = this.physics.add.group({ immovable: true, allowGravity: false }); // TOP GROUND ONLY
+                this.hangingBlocks = this.physics.add.group({ immovable: true, allowGravity: false }); // HANGING PLATS
                 this.decorLayer = this.add.group(); 
                 this.obstacles = this.physics.add.group({ allowGravity: false });
                 this.coins = this.physics.add.group({ allowGravity: false });
                 this.powerups = this.physics.add.group({ allowGravity: false });
                 this.portals = this.physics.add.group({ allowGravity: false });
 
-                const spawnY = this.scale.height * 0.5; 
+                // SPAWN CHARACTER (Middle Left Drop)
+                const spawnY = this.scale.height * 0.5; // Middle of screen vertically
                 this.player = this.physics.add.sprite(200, spawnY, `${c}_run_1`);
                 this.player.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
+                // COLLISION FIX: Explicitly sizing and offsetting to ensure solid ground contact
                 this.player.refreshBody();
                 this.player.body.setSize(BLOCK_SIZE * 0.5, BLOCK_SIZE * 0.9);
                 this.player.body.setOffset(BLOCK_SIZE * 0.25, BLOCK_SIZE * 0.1);
@@ -393,6 +421,7 @@
                 this.nextSpawnX = 0;
                 this.createGroundSegment(20); 
 
+                // COLLIDE WITH SOLID GROUND & HANGING BLOCKS
                 this.physics.add.collider(this.player, this.groundSolids);
                 this.physics.add.collider(this.player, this.hangingBlocks);
                 
@@ -409,6 +438,7 @@
                 this.createHUD();
                 this.showLevelName();
 
+                // SPAWN INVINCIBILITY
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
@@ -418,7 +448,6 @@
             update() {
                 if(this.isGameOver) return;
 
-                // Stop updates during stun
                 if (this.isStunned) {
                     this.player.setTexture(`${userData.character}_hit`);
                     return;
@@ -443,7 +472,7 @@
 
                 if(this.currentSpeed < GAME_CONFIG.maxSpeed) this.currentSpeed += GAME_CONFIG.acceleration;
 
-                // this.bg.tilePositionX += (this.currentSpeed * 0.005); // Background static
+                this.bg.tilePositionX += (this.currentSpeed * 0.005);
                 const shift = this.currentSpeed * 0.016;
 
                 [this.groundSolids, this.hangingBlocks, this.obstacles, this.coins, this.powerups, this.portals].forEach(g => {
@@ -462,14 +491,18 @@
                     }
                 });
 
+                this.nextSpawnX -= shift;
                 this.coinPatternBarrier -= shift;
 
+                // GAPLESS GENERATION LOGIC: Find last block X
                 let rightmostX = -1000;
                 this.groundSolids.children.iterate(child => {
                     if (child.x > rightmostX) rightmostX = child.x;
                 });
                 
+                // If the rightmost block is entering the screen buffer zone, spawn attached to it
                 if (rightmostX < this.scale.width + 200) {
+                    // Start next segment exactly where the last one ended + overlap
                     this.generateGround(rightmostX + (BLOCK_SIZE - 2)); 
                 }
 
@@ -510,26 +543,32 @@
                 if(this.player.body.velocity.y < -100) this.player.setVelocityY(this.player.body.velocity.y * 0.5);
             }
             
+            // Helper for initial generation
             createGroundSegment(count) {
-                let currentX = 0; 
+                let currentX = 0; // Start at 0
                 for(let i=0; i<count; i++) {
-                    this.createBlockColumn(currentX, true); 
+                    this.createBlockColumn(currentX, true); // Safe mode
                     currentX += (BLOCK_SIZE - 2);
                 }
             }
 
+            // Infinite Generator attached to anchors
             generateGround(startX) {
+                // Determine if we spawn a gap (Pit)
                 let makeGap = false;
                 if (this.distance > 10 && Math.random() < 0.35 && !this.portalSpawned) {
                     makeGap = true;
                 }
+
                 let currentX = startX;
                 if (makeGap) {
                     const gapSize = Phaser.Math.Between(3, 5);
                     currentX += (gapSize * BLOCK_SIZE);
                 }
+
                 const segmentLength = Phaser.Math.Between(10, 20);
                 
+                // PORTAL CHECK
                 if (this.time.now - this.levelStartTime > 45000 && this.portals.countActive() === 0 && !this.portalSpawned) {
                     const portalX = currentX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, GROUND_Y - (BLOCK_SIZE * 1.25), 'portal_1');
@@ -538,6 +577,7 @@
                     portal.body.setSize(BLOCK_SIZE * 2.5, BLOCK_SIZE * 2.5);
                     portal.body.setAllowGravity(false);
                     this.portalSpawned = true;
+                    // Force segment
                     for(let i=0; i<12; i++) {
                         this.createBlockColumn(currentX, true);
                         currentX += (BLOCK_SIZE - 2);
@@ -553,22 +593,30 @@
 
             createBlockColumn(x, safeMode) {
                 const topY = Math.floor(GROUND_Y);
+                
+                // PHYSICS BLOCK
                 const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                block.refreshBody(); 
+                block.refreshBody(); // Refresh body size first
+                
+                // FORCE BODY SIZE to match, overriding potential unscaled image dimensions
                 block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
+                
                 block.body.immovable = true;
                 block.body.allowGravity = false;
                 block.body.checkCollision.left = false;
                 block.body.checkCollision.right = false;
 
+                // DECOR LAYERS (No Physics)
                 for(let j=1; j<4; j++) {
+                    // GAP FIX: Overlap by 2 pixels to seal the seam
                     const y = topY + (j * BLOCK_SIZE) - 2;
                     const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
                     dBlock.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                 }
 
                 if (!this.portalSpawned && !safeMode) {
+                    // Safe start check
                     if (this.time.now - this.gameStartTime > this.safeStartDuration) {
                         if (Math.random() < 0.05) { 
                             const type = Phaser.Math.Between(1, 3);
@@ -611,8 +659,7 @@
                         if (i === 3) {
                             const pTypes = ['shield', 'magnet', 'doublejump'];
                             const pType = pTypes[Phaser.Math.Between(0,2)];
-                            const p = this.powerups.create(b.x, b.y - BLOCK_SIZE, pType + '_item').setData('type', pType);
-                            p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); p.refreshBody(); p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
+                            this.spawnFloatingItem(b.x, b.y - BLOCK_SIZE, pType);
                         }
                     }
                 }
@@ -620,8 +667,26 @@
 
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
+
+                // Priority: Life Powerup (once per level, after 3s)
+                if (!this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
+                    // Try to spawn it slightly elevated
+                    this.spawnFloatingItem(x, y - (BLOCK_SIZE * 1.5), 'life');
+                    this.lifePowerupSpawned = true;
+                    return;
+                }
+
                 const r = Math.random();
                 const unsafe = Math.abs(x - this.lastObstacleX) < BLOCK_SIZE*3 || Math.abs(x - this.lastAirObstacleX) < BLOCK_SIZE*3; 
+
+                if (this.time.now - this.lastOQEPTime > 25000) {
+                    if (!unsafe && x > this.coinPatternBarrier) {
+                        this.spawnFullWordPattern(x, y - (BLOCK_SIZE * 2));
+                        this.lastOQEPTime = this.time.now;
+                        this.coinPatternBarrier = x + (BLOCK_SIZE * 15); 
+                        return; 
+                    }
+                }
 
                 if (r < 0.6) { 
                     if (unsafe) return;
@@ -646,6 +711,7 @@
                     this.lastObstacleX = x;
                     const obsY = y - (BLOCK_SIZE * 0.3);
                     const obs = this.obstacles.create(x, obsY, `obstacle_${this.level}`); 
+                    // REDUCED OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
                     obs.refreshBody();
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
@@ -656,6 +722,7 @@
                     this.lastAirObstacleX = x;
                     const obs = this.obstacles.create(x, y - (BLOCK_SIZE * 2.0), `obstacle_air_${this.level}_1`);
                     obs.play(`fly_${this.level}`);
+                    // REDUCED AIR OBSTACLE HITBOX (0.5x)
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
                     obs.refreshBody();
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
@@ -668,14 +735,47 @@
                     const requiredInterval = Phaser.Math.Between(10000, 15000);
                     if (this.time.now - this.gameStartTime < 5000) return;
                     if (timeSinceLast < requiredInterval) return;
+                    
                     this.lastPowerupTime = this.time.now;
+                    this.lastPowerupX = x;
                     const pTypes = ['shield', 'magnet', 'doublejump'];
                     const type = pTypes[Phaser.Math.Between(0, 2)];
-                    const p = this.powerups.create(x, y, type + '_item').setData('type', type);
-                    p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); p.refreshBody(); p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
+                    this.spawnFloatingItem(x, y, type);
                 } 
             }
+
+            spawnFloatingItem(x, y, type) {
+                // Determine image key
+                let imgKey = type + '_item';
+                if (type === 'life') imgKey = 'life_icon'; // Use UI icon for pickup
+                
+                const p = this.powerups.create(x, y, imgKey).setData('type', type);
+                p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
+                p.refreshBody(); 
+                p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7);
+                this.addFloatingAnim(p);
+            }
             
+            spawnFullWordPattern(startX, startY) {
+                const word = ['O', 'Q', 'E', 'P'];
+                const spacingX = BLOCK_SIZE * 0.4;
+                const spacingY = BLOCK_SIZE * 0.4;
+                const letterSpacing = BLOCK_SIZE * 2.5; 
+                word.forEach((char, index) => {
+                    const pattern = LETTER_PATTERNS[char];
+                    const letterOffsetX = index * letterSpacing;
+                    for (let r = 0; r < pattern.length; r++) {
+                        for (let c = 0; c < pattern[r].length; c++) {
+                            if (pattern[r][c] === 'X') {
+                                const coin = this.coins.create(startX + letterOffsetX + (c * spacingX), startY + (r * spacingY), `coin_${this.level}`);
+                                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); coin.refreshBody(); coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                                this.addFloatingAnim(coin);
+                            }
+                        }
+                    }
+                });
+            }
+
             spawnCoinArc(startX, baseY) {
                 const radius = BLOCK_SIZE;
                 const steps = 5;
@@ -688,7 +788,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addCoinWiggle(coin);
+                    this.addFloatingAnim(coin);
                 }
             }
 
@@ -698,7 +798,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addCoinWiggle(coin);
+                    this.addFloatingAnim(coin);
                 }
             }
 
@@ -709,7 +809,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addCoinWiggle(coin);
+                    this.addFloatingAnim(coin);
                 }
             }
 
@@ -717,24 +817,49 @@
                 const topCoin = this.coins.create(startX + (BLOCK_SIZE*0.5), startY, `coin_${this.level}`);
                 topCoin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                 topCoin.refreshBody(); topCoin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addCoinWiggle(topCoin);
+                this.addFloatingAnim(topCoin);
 
                 const b1 = this.coins.create(startX, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
                 b1.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                 b1.refreshBody(); b1.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addCoinWiggle(b1);
+                this.addFloatingAnim(b1);
 
                 const b2 = this.coins.create(startX + BLOCK_SIZE, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
                 b2.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                 b2.refreshBody(); b2.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addCoinWiggle(b2);
+                this.addFloatingAnim(b2);
             }
 
-            addCoinWiggle(coin) {
-                this.tweens.add({ targets: coin, angle: { from: -15, to: 15 }, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut' });
+            addFloatingAnim(target) {
+                // Combined Wiggle + Float
+                this.tweens.add({
+                    targets: target,
+                    angle: { from: -15, to: 15 },
+                    yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut'
+                });
+                this.tweens.add({
+                    targets: target,
+                    y: target.y - 20,
+                    yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut'
+                });
             }
 
             spawnParticles(x, y, type, color) {
+                // If type is 'mix', spawn both
+                if (type === 'mix') {
+                    // Star particles
+                    const emitterS = this.add.particles(x, y, 'particle_star_4', {
+                        speed: { min: 200, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, lifespan: 500, tint: color, quantity: 8, emitting: false
+                    });
+                    emitterS.explode();
+                    // Glow round particles
+                    const emitterR = this.add.particles(x, y, 'particle_round', {
+                        speed: { min: 100, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 0.5, end: 0 }, lifespan: 600, tint: 0xffffff, quantity: 8, emitting: false, blendMode: 'ADD'
+                    });
+                    emitterR.explode();
+                    return;
+                }
+
                 const texture = type === 'round' ? 'particle_round' : 'particle_star';
                 const emitter = this.add.particles(x, y, texture, {
                     speed: { min: 200, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, lifespan: 500, tint: color, quantity: 15, emitting: false
@@ -746,7 +871,7 @@
                 coin.destroy();
                 this.score += 1;
                 this.updateHUD();
-                this.spawnParticles(coin.x, coin.y, 'round', 0xffff00); 
+                this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
                 if(!DEMO_MODE && this.coinSound) {
                     if(this.coinSound.isPlaying) this.coinSound.stop();
                     this.coinSound.play();
@@ -756,6 +881,19 @@
             collectPowerup(p, item) {
                 const type = item.getData('type');
                 item.destroy();
+                
+                // LIFE LOGIC
+                if (type === 'life') {
+                    if (this.lives < 3) {
+                        this.lives++;
+                    }
+                    // Visual feedback
+                    this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
+                    if(!DEMO_MODE && this.powerSound) this.powerSound.play();
+                    this.updateHUD();
+                    return; // Done
+                }
+
                 this.score += 1;
                 this.updateHUD();
                 let color = 0xffffff;
@@ -867,6 +1005,9 @@
                 portal.destroy();
                 this.cameras.main.flash(1000, 255, 255, 255);
                 this.isInvincible = true;
+                // RESET LIFE SPAWN FOR NEW LEVEL
+                this.lifePowerupSpawned = false;
+                
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
