@@ -112,6 +112,8 @@
     <div id="game-over-screen" class="overlay interactive hidden flex-col bg-black bg-opacity-95 text-white overflow-y-auto py-10">
         <h1 id="end-title" class="text-5xl font-bold mb-4 text-red-500">GAME OVER</h1>
         <div class="text-2xl mb-4">Score: <span id="final-score" class="text-yellow-400">0</span></div>
+        
+        <!-- LEADERBOARD SECTION -->
         <div class="w-full max-w-md bg-gray-800 rounded-lg p-4 mb-8 border border-gray-700 shadow-xl">
             <h3 class="text-xl font-bold text-white mb-3 text-center border-b border-gray-600 pb-2">Top 5 Leaders</h3>
             <table class="w-full text-left text-sm text-gray-300">
@@ -122,9 +124,12 @@
                         <th class="px-4 py-2 text-right">Score</th>
                     </tr>
                 </thead>
-                <tbody id="gameover-leaderboard-body"></tbody>
+                <tbody id="gameover-leaderboard-body">
+                    <!-- Populated by JS -->
+                </tbody>
             </table>
         </div>
+
         <button onclick="location.reload()" class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition transform hover:scale-105">Play Again</button>
     </div>
 
@@ -146,7 +151,8 @@
             1: { en: "Masandam", ar: "مسندم" },
             2: { en: "Marsa", ar: "مرسى" },
             3: { en: "Bisat desert", ar: "صحراء بساط" },
-            4: { en: "Kamzar", ar: "كمزار" }
+            4: { en: "Kamzar", ar: "كمزار" },
+            5: { en: "The Finale", ar: "الختام" } 
         };
 
         const LETTER_PATTERNS = {
@@ -282,7 +288,7 @@
                 this.lastAirObstacleX = -1000;
                 this.lastPowerupTime = 0; 
                 this.lastOQEPTime = 0; 
-                this.lifePowerupSpawned = false; // Flag for single life powerup per level
+                this.lifePowerupSpawned = false; 
                 
                 this.gameStartTime = 0;
                 this.levelStartTime = 0; 
@@ -391,6 +397,7 @@
                     this.anims.create({ key: `fly_${i}`, frames: [{ key: `obstacle_air_${i}_1` }, { key: `obstacle_air_${i}_2` }], frameRate: 6, repeat: -1, yoyo: true });
                 }
 
+                // Background STATIC
                 this.bg = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, `bg_${this.level}`).setOrigin(0,0).setScrollFactor(0);
 
                 // --- NEW GROUP STRUCTURE ---
@@ -472,7 +479,8 @@
 
                 if(this.currentSpeed < GAME_CONFIG.maxSpeed) this.currentSpeed += GAME_CONFIG.acceleration;
 
-                this.bg.tilePositionX += (this.currentSpeed * 0.005);
+                // Background Static
+                // this.bg.tilePositionX += (this.currentSpeed * 0.005);
                 const shift = this.currentSpeed * 0.016;
 
                 [this.groundSolids, this.hangingBlocks, this.obstacles, this.coins, this.powerups, this.portals].forEach(g => {
@@ -597,7 +605,7 @@
                 // PHYSICS BLOCK
                 const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                 block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                block.refreshBody(); // Refresh body size first
+                block.refreshBody(); // CRITICAL FIX: Refresh body size first
                 
                 // FORCE BODY SIZE to match, overriding potential unscaled image dimensions
                 block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
@@ -668,8 +676,8 @@
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
 
-                // Priority: Life Powerup (once per level, after 3s)
-                if (!this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
+                // Priority: Life Powerup (once per level, after 3s, not in level 1)
+                if (this.level > 1 && !this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
                     // Try to spawn it slightly elevated
                     this.spawnFloatingItem(x, y - (BLOCK_SIZE * 1.5), 'life');
                     this.lifePowerupSpawned = true;
@@ -769,7 +777,7 @@
                             if (pattern[r][c] === 'X') {
                                 const coin = this.coins.create(startX + letterOffsetX + (c * spacingX), startY + (r * spacingY), `coin_${this.level}`);
                                 coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); coin.refreshBody(); coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                                this.addFloatingAnim(coin);
+                                this.addCoinWiggle(coin);
                             }
                         }
                     }
@@ -788,7 +796,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addFloatingAnim(coin);
+                    this.addCoinWiggle(coin);
                 }
             }
 
@@ -798,7 +806,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addFloatingAnim(coin);
+                    this.addCoinWiggle(coin);
                 }
             }
 
@@ -809,7 +817,7 @@
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addFloatingAnim(coin);
+                    this.addCoinWiggle(coin);
                 }
             }
 
@@ -817,7 +825,7 @@
                 const topCoin = this.coins.create(startX + (BLOCK_SIZE*0.5), startY, `coin_${this.level}`);
                 topCoin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                 topCoin.refreshBody(); topCoin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addFloatingAnim(topCoin);
+                this.addCoinWiggle(topCoin);
 
                 const b1 = this.coins.create(startX, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
                 b1.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
@@ -831,16 +839,33 @@
             }
 
             addFloatingAnim(target) {
-                // Combined Wiggle + Float
+                // Combined Wiggle + Float with RANDOM start delay to avoid sync
+                const startDelay = Phaser.Math.Between(0, 1000);
+                const dur = Phaser.Math.Between(350, 450);
+
                 this.tweens.add({
                     targets: target,
                     angle: { from: -15, to: 15 },
-                    yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut'
+                    yoyo: true, repeat: -1, duration: dur, ease: 'Sine.easeInOut',
+                    delay: startDelay
                 });
                 this.tweens.add({
                     targets: target,
                     y: target.y - 20,
-                    yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut'
+                    yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut',
+                    delay: startDelay
+                });
+            }
+
+            addCoinWiggle(coin) {
+                // Just Wiggle + Random delay
+                const startDelay = Phaser.Math.Between(0, 1000);
+                const dur = Phaser.Math.Between(350, 450);
+                this.tweens.add({ 
+                    targets: coin, 
+                    angle: { from: -15, to: 15 }, 
+                    yoyo: true, repeat: -1, duration: dur, ease: 'Sine.easeInOut',
+                    delay: startDelay
                 });
             }
 
@@ -1016,7 +1041,7 @@
                 this.score += 5;
                 this.distance = 0;
                 this.currentSpeed = GAME_CONFIG.startSpeed + ((this.level - 1) * 200); 
-                this.bg.setTexture(`bg_${this.level}`);
+                // this.bg.setTexture(`bg_${this.level}`); // Background static
                 this.showLevelName();
                 this.levelStartTime = this.time.now;
                 this.portalSpawned = false;
