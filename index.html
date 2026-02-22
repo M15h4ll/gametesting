@@ -238,14 +238,16 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden z-50">
-        <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60 z-0" alt="">
+        <!-- EXACT PORTRAIT BACKGROUND -->
+        <img src="assets/ui/menu.png" class="absolute top-0 left-1/2 transform -translate-x-1/2 h-full aspect-[9/16] object-cover blur-sm opacity-60 z-0 pointer-events-none" alt="">
         
-        <!-- FULL SCREEN ART OVERLAY -->
-        <img src="assets/ui/art.png" class="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" alt="">
+        <!-- FULL SCREEN ART OVERLAY (STRICT PORTRAIT) -->
+        <img src="assets/ui/art.png" class="absolute top-0 left-1/2 transform -translate-x-1/2 h-full aspect-[9/16] object-cover z-[5] pointer-events-none" alt="">
 
         <div class="mb-6 z-20 relative flex flex-col items-center">
+             <!-- NEW OQ LOGO -->
              <img src="assets/ui/oqlogo.png" id="ui-oqlogo" alt="OQ LOGO" class="max-w-[120px] mb-3 h-auto object-contain drop-shadow-md">
-             <!-- STATIC GAME LOGO (No bounce animation) -->
+             <!-- STATIC GAME LOGO -->
              <img src="assets/ui/logo.png" id="ui-logo" alt="GAME LOGO" class="max-w-[280px] h-auto object-contain drop-shadow-lg">
         </div>
 
