@@ -25,7 +25,7 @@
         .interactive { pointer-events: auto; }
         .rtl { direction: rtl; font-family: 'Cairo', sans-serif; }
         
-        /* Custom Scrollbar for global and admin */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #333; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
@@ -47,6 +47,7 @@
         img[src="assets/ui/oqlogo.png"]:not([src]) { display: block; width: 100px; height: 50px; background: rgba(0,0,0,0.1); }
         img[src="assets/ui/img.png"]:not([src]) { display: block; width: 128px; height: 128px; background: rgba(255,255,255,0.2); }
         img[src="assets/ui/menu.png"]:not([src]) { background-color: #13647a; }
+        img[src="assets/ui/art.png"]:not([src]) { background-color: transparent; }
         img[src="assets/ui/instructions.png"]:not([src]) { background-color: #111; }
 
         /* Mute Button */
@@ -80,11 +81,11 @@
             <div id="instructions-en" class="custom-scroll text-white overflow-y-auto pr-3 space-y-4 text-left">
                 <h2 class="text-3xl font-extrabold text-yellow-400 mb-2">GAME INSTRUCTIONS</h2>
                 <h3 class="text-xl font-bold mb-4">طاقتنا للخير | Energy for Good</h3>
-                <p class="font-medium">Welcome to OQEP’s Ramadan “Energy for Good” Game!</p>
+                <p class="font-medium">Welcome to OQEP's Ramadan “Energy for Good” Game!</p>
                 
                 <h3 class="text-2xl font-bold text-yellow-400 mt-8 mb-2">Game Concept</h3>
                 <p class="text-sm leading-relaxed text-gray-200">This is an infinite runner game where you explore Oman through four exciting levels, collecting coins and Ramadan lanterns along the way.</p>
-                <p class="text-sm leading-relaxed text-gray-200">Each level represents a journey of الخير — inspired by OQEP’s presence across the Sultanate and its community initiatives.</p>
+                <p class="text-sm leading-relaxed text-gray-200">Each level represents a journey of الخير — inspired by OQEP's presence across the Sultanate and its community initiatives.</p>
                 <h4 class="font-bold text-lg mt-4 text-blue-300">Your goal:</h4>
                 <ul class="list-disc list-inside ml-2 text-sm text-gray-200 space-y-1">
                     <li>Run as far as possible</li>
@@ -137,7 +138,7 @@
 
                 <h4 class="font-bold text-lg text-blue-300 mb-2">Prize Collection</h4>
                 <ul class="list-disc list-inside ml-2 mb-6 text-sm text-gray-200 space-y-1">
-                    <li>Winners will be announced on OQEP’s official social media platforms.</li>
+                    <li>Winners will be announced on OQEP's official social media platforms.</li>
                     <li>Winners must claim their prize within 15 days of the announcement.</li>
                     <li>Failure to claim within this period will result in forfeiture of the prize.</li>
                     <li>Prizes are non-transferable and cannot be exchanged for cash.</li>
@@ -146,7 +147,7 @@
                 <h4 class="font-bold text-lg text-blue-300 mb-2">General Conditions</h4>
                 <ul class="list-disc list-inside ml-2 pb-6 text-sm text-gray-200 space-y-1">
                     <li>OQEP reserves the right to amend or cancel the competition at any time.</li>
-                    <li>OQEP’s decision regarding winners and eligibility is final.</li>
+                    <li>OQEP's decision regarding winners and eligibility is final.</li>
                     <li>By participating, players agree that OQEP may repost or feature their shared content for promotional purposes.</li>
                     <li>Personal data collected will be used solely for competition administration and verification.</li>
                 </ul>
@@ -177,7 +178,7 @@
                     <li>بعد انتهاء اللعبة، انقر على <span class="font-bold text-white">"شارك"</span>.</li>
                     <li>انشر نتيجتك على إنستجرام.</li>
                     <li>أضف الهاشتاجات <span class="font-bold text-blue-300">#OQEP #طاقتنا_للخير #EnergyForGood</span></li>
-                    <li>تأكد من أن حسابك عام (Public) وقت المشاركة.</li>
+                    <li>تأكد من أن حسابك عام وقت المشاركة.</li>
                     <li>يمكنك اللعب عدة مرات ومشاركة نتائج متعددة لتحسين ترتيبك.</li>
                 </ul>
                 <p class="mt-4 font-bold text-yellow-300 p-3 bg-white/10 rounded border border-yellow-400/30">أعلى 5 نتائج بنهاية شهر رمضان 2026 سيفوزون بهدية خاصة من OQEP.</p>
@@ -237,13 +238,14 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden z-50">
-        <!-- MENU BACKGROUND -->
         <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60 z-0" alt="">
+        
+        <!-- FULL SCREEN ART OVERLAY -->
+        <img src="assets/ui/art.png" class="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" alt="">
 
         <div class="mb-6 z-20 relative flex flex-col items-center">
-             <!-- NEW OQ LOGO -->
              <img src="assets/ui/oqlogo.png" id="ui-oqlogo" alt="OQ LOGO" class="max-w-[120px] mb-3 h-auto object-contain drop-shadow-md">
-             <!-- STATIC GAME LOGO -->
+             <!-- STATIC GAME LOGO (No bounce animation) -->
              <img src="assets/ui/logo.png" id="ui-logo" alt="GAME LOGO" class="max-w-[280px] h-auto object-contain drop-shadow-lg">
         </div>
 
@@ -307,7 +309,7 @@
         
         <!-- QR Code / Image Placeholder -->
         <div class="flex flex-col items-center mb-8">
-            <img src="assets/ui/img.png" id="ui-qr" alt="Scan to Play" class="w-32 h-32 md:w-40 md:h-40 object-contain bg-white/20 rounded-xl p-2 shadow-lg mb-2 backdrop-blur-sm">
+            <img src="assets/ui/img.png" id="ui-qr" alt="Scan to Play" crossorigin="anonymous" class="w-32 h-32 md:w-40 md:h-40 object-contain bg-white/20 rounded-xl p-2 shadow-lg mb-2 backdrop-blur-sm">
             <p id="lbl-scan" class="text-sm md:text-base font-bold text-gray-200 uppercase tracking-widest drop-shadow-md">Scan to play</p>
         </div>
 
@@ -445,7 +447,7 @@
             document.getElementById('lbl-char').innerText = t.char;
             document.getElementById('btn-start').innerText = t.start;
             
-            // Buttons
+            // Buttons & Text
             document.getElementById('btn-proceed').innerText = t.proceed;
             document.getElementById('end-score-lbl').innerText = t.score + ':';
             document.getElementById('lbl-scan').innerText = t.scan;
@@ -487,12 +489,7 @@
                 scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT },
                 physics: { 
                     default: 'arcade', 
-                    arcade: { 
-                        gravity: { y: GAME_CONFIG.gravity }, 
-                        debug: false, 
-                        tileBias: 128,
-                        fps: 120 
-                    } 
+                    arcade: { gravity: { y: GAME_CONFIG.gravity }, debug: false, tileBias: 128, fps: 120 } 
                 }, 
                 scene: MainScene, 
                 transparent: true,
@@ -509,7 +506,10 @@
                 tempCanvas.height = phaserCanvas.height;
                 const ctx = tempCanvas.getContext('2d');
                 
+                // 1. Draw base game canvas
                 ctx.drawImage(phaserCanvas, 0, 0);
+                
+                // 2. Add dark overlay
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
                 ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
                 
@@ -523,22 +523,25 @@
                 const centerX = tempCanvas.width / 2;
                 const centerY = tempCanvas.height / 2;
                 
+                // Enable shadows
                 ctx.shadowColor = "rgba(0,0,0,0.8)";
                 ctx.shadowBlur = 10;
                 
+                // 3. Draw Name (higher up)
                 ctx.font = `bold ${Math.floor(tempCanvas.height * 0.06)}px sans-serif`;
                 ctx.fillStyle = '#ffffff';
                 ctx.fillText(nameText, centerX, centerY - 250);
                 
+                // 4. Draw Score
                 ctx.font = `bold ${Math.floor(tempCanvas.height * 0.04)}px sans-serif`;
                 ctx.fillStyle = '#facc15';
                 ctx.fillText(scoreText, centerX, centerY - 120);
                 
-                // Draw QR Code Image
+                // 5. Draw QR Code Image
                 const qrImgElement = document.getElementById('ui-qr');
                 const qrSize = Math.floor(tempCanvas.width * 0.25); 
                 const qrX = centerX - (qrSize / 2);
-                const qrY = centerY + 20;
+                const qrY = centerY - 10;
                 
                 if (qrImgElement && qrImgElement.complete && qrImgElement.naturalWidth > 0) {
                     ctx.shadowBlur = 0; 
@@ -555,7 +558,7 @@
                     ctx.drawImage(qrImgElement, qrX, qrY, qrSize, qrSize);
                 }
                 
-                // Draw Scan Text
+                // 6. Draw Scan text
                 ctx.shadowColor = "rgba(0,0,0,0.8)";
                 ctx.shadowBlur = 5;
                 ctx.font = `bold ${Math.floor(tempCanvas.height * 0.025)}px sans-serif`;
@@ -845,7 +848,7 @@
                 const spawnY = this.scale.height * 0.5; // Middle of screen vertically
                 this.player = this.physics.add.sprite(200, spawnY, `${c}_run_1`);
                 this.player.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                // COLLISION FIX: Explicitly sizing and offsetting to ensure solid ground contact
+                // COLLISION FIX
                 this.player.refreshBody();
                 this.player.body.setSize(BLOCK_SIZE * 0.5, BLOCK_SIZE * 0.9);
                 this.player.body.setOffset(BLOCK_SIZE * 0.25, BLOCK_SIZE * 0.1);
@@ -945,8 +948,7 @@
                 });
                 
                 if (rightmostX < this.scale.width + 200) {
-                    // Start next segment exactly where the last one ended + overlap
-                    this.generateGround(rightmostX + (BLOCK_SIZE - 2)); 
+                    this.createGroundSegment(Phaser.Math.Between(10, 20)); 
                 }
 
                 if(this.hasShield) this.shieldFx.setPosition(this.player.x, this.player.y);
@@ -987,10 +989,9 @@
             }
             
             createGroundSegment(count) {
-                // PORTAL SPAWN LOGIC: 60 SECONDS
+                // PORTAL SPAWN LOGIC: Increased to 60 SECONDS (60000ms) to prevent it from appearing too early
                 if (this.time.now - this.levelStartTime > 60000 && this.portals.countActive() === 0 && !this.portalSpawned) {
                     const portalX = this.nextSpawnX + (BLOCK_SIZE * 3);
-                    // Center the portal vertically
                     const portal = this.portals.create(portalX, this.scale.height / 2, 'portal_1');
                     portal.play('portal');
                     // Set height to full screen height (1920) so it cannot be jumped over or fallen under
@@ -1015,16 +1016,16 @@
                     // TOP LAYER (Physics Enabled) - USE groundSolids GROUP
                     const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                     block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
-                    block.refreshBody(); 
                     block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
-                    
                     block.body.immovable = true;
                     block.body.allowGravity = false;
                     block.body.checkCollision.left = false;
                     block.body.checkCollision.right = false;
+                    block.refreshBody();
 
                     // DECOR LAYERS (No Physics)
                     for(let j=1; j<4; j++) {
+                        // GAP FIX: Overlap by 2 pixels to seal the seam
                         const y = topY + (j * BLOCK_SIZE) - 2;
                         const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
                         dBlock.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
@@ -1040,43 +1041,45 @@
                             if (Math.random() < 0.2) this.spawnItem(x, topY - (BLOCK_SIZE * 0.8));
                         }
                     }
-                    
-                    this.nextSpawnX += (BLOCK_SIZE - 2);
+
+                    this.nextSpawnX += (BLOCK_SIZE - 2); // Overlap for horizontal seam fix
                 }
+
                 this.distance += count;
             }
-            
+
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
                     for(let i=0; i<3; i++) {
-                        let plat1 = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
-                        plat1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat1.refreshBody(); plat1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat1.body.immovable = true; plat1.body.allowGravity = false; 
-                        if(i===1 && Math.random()<0.5) this.spawnItem(plat1.x, plat1.y - BLOCK_SIZE);
+                        const b = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody(); 
+                        if(i===1 && Math.random()<0.5) this.spawnItem(b.x, b.y - BLOCK_SIZE);
                     }
                 } else if (type === 2) { 
                     for(let i=0; i<4; i++) {
-                        let plat2 = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
-                        plat2.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat2.refreshBody(); plat2.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat2.body.immovable = true; plat2.body.allowGravity = false; 
-                        if(i===2 && Math.random()<0.5) this.spawnItem(plat2.x, plat2.y - BLOCK_SIZE);
+                        const b = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody(); 
+                        if(i===2 && Math.random()<0.5) this.spawnItem(b.x, b.y - BLOCK_SIZE);
                     }
                 } else if (type === 3) { 
-                    let b1 = this.hangingBlocks.create(startX, startY, `block_${this.level}`);
-                    b1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b1.refreshBody(); b1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b1.body.immovable = true; b1.body.allowGravity = false; 
+                    const b1 = this.hangingBlocks.create(startX, startY, `block_${this.level}`);
+                    b1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b1.body.immovable = true; b1.body.allowGravity = false; b1.refreshBody(); 
                     let currentX = startX + BLOCK_SIZE + 200;
                     const step2Y = startY - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<3; i++) {
-                        let plat3 = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step2Y, `block_${this.level}`);
-                        plat3.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat3.refreshBody(); plat3.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat3.body.immovable = true; plat3.body.allowGravity = false;
+                        const b = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step2Y, `block_${this.level}`);
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody();
                     }
                     currentX = currentX + (3*BLOCK_SIZE) + 200;
                     const step3Y = step2Y - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<4; i++) {
-                        let plat4 = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step3Y, `block_${this.level}`);
-                        plat4.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat4.refreshBody(); plat4.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat4.body.immovable = true; plat4.body.allowGravity = false;
+                        const b = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step3Y, `block_${this.level}`);
+                        b.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b.body.immovable = true; b.body.allowGravity = false; b.refreshBody();
                         if (i === 3) {
                             const pTypes = ['shield', 'magnet', 'doublejump'];
                             const pType = pTypes[Phaser.Math.Between(0,2)];
-                            this.spawnFloatingItem(plat4.x, plat4.y - BLOCK_SIZE, pType);
+                            const p = this.powerups.create(b.x, b.y - BLOCK_SIZE, pType + '_item').setData('type', pType);
+                            p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
                         }
                     }
                 }
@@ -1094,6 +1097,8 @@
 
                 const r = Math.random();
                 const unsafe = Math.abs(x - this.lastObstacleX) < BLOCK_SIZE*3 || Math.abs(x - this.lastAirObstacleX) < BLOCK_SIZE*3; 
+                
+                // NEW: Ensure a safe gap of at least 6 blocks between any obstacles to prevent clustering
                 const tooCloseForObstacle = Math.abs(x - Math.max(this.lastObstacleX, this.lastAirObstacleX)) < (BLOCK_SIZE * 6);
 
                 if (this.time.now - this.lastOQEPTime > 25000) {
@@ -1127,10 +1132,7 @@
                     const obsY = y - (BLOCK_SIZE * 0.3);
                     const obs = this.obstacles.create(x, obsY, `obstacle_${this.level}`); 
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
-                    obs.refreshBody();
-                    obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
-                    const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
-                    obs.body.setOffset(off, off);
+                    obs.body.setSize(BLOCK_SIZE*1.2, BLOCK_SIZE*1.2);
                 } 
                 else if (r < 0.78) { 
                     if (tooCloseForObstacle) return;
@@ -1139,10 +1141,7 @@
                     const obs = this.obstacles.create(x, y - (BLOCK_SIZE * 2.0), `obstacle_air_${this.level}_1`);
                     obs.play(`fly_${this.level}`);
                     obs.setDisplaySize(BLOCK_SIZE*1.6, BLOCK_SIZE*1.6); 
-                    obs.refreshBody();
-                    obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
-                    const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
-                    obs.body.setOffset(off, off);
+                    obs.body.setSize(BLOCK_SIZE*1.0, BLOCK_SIZE*1.0);
                     this.tweens.add({targets: obs, y: obs.y + 50, yoyo: true, duration: 1000, repeat: -1});
                 }
                 else if (r < 0.85) { 
@@ -1155,7 +1154,8 @@
                     this.lastPowerupX = x;
                     const pTypes = ['shield', 'magnet', 'doublejump'];
                     const type = pTypes[Phaser.Math.Between(0, 2)];
-                    this.spawnFloatingItem(x, y, type);
+                    const p = this.powerups.create(x, y, type + '_item').setData('type', type);
+                    p.setDisplaySize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); p.body.setSize(BLOCK_SIZE*0.7, BLOCK_SIZE*0.7); 
                 } 
             }
 
@@ -1182,7 +1182,7 @@
                         for (let c = 0; c < pattern[r].length; c++) {
                             if (pattern[r][c] === 'X') {
                                 const coin = this.coins.create(startX + letterOffsetX + (c * spacingX), startY + (r * spacingY), `coin_${this.level}`);
-                                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); coin.refreshBody(); coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
                                 this.addCoinWiggle(coin);
                             }
                         }
@@ -1200,7 +1200,6 @@
                     const cY = baseY + (Math.sin(angle) * radius);
                     const coin = this.coins.create(cX, cY, `coin_${this.level}`);
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                    coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
                     this.addCoinWiggle(coin);
                 }
@@ -1210,38 +1209,23 @@
                 for(let i=0; i<5; i++) {
                     const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.5)), startY, `coin_${this.level}`);
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                    coin.refreshBody();
                     coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
                     this.addCoinWiggle(coin);
                 }
             }
 
-            spawnCoinZigZag(startX, startY) {
-                const offsets = [0, -40, 0, -40, 0];
-                for(let i=0; i<5; i++) {
-                    const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.6)), startY + offsets[i], `coin_${this.level}`);
-                    coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                    coin.refreshBody();
-                    coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                    this.addCoinWiggle(coin);
-                }
+            spawnCoin(x, y) {
+                const coin = this.coins.create(x, y, `coin_${this.level}`);
+                coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
+                coin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
+                this.addCoinWiggle(coin);
+                this.tweens.add({ targets: coin, y: y - 20, yoyo: true, repeat: -1, duration: 800 + Math.random() * 400, ease: 'Sine.easeInOut' });
             }
 
-            spawnCoinTriangle(startX, startY) {
-                const topCoin = this.coins.create(startX + (BLOCK_SIZE*0.5), startY, `coin_${this.level}`);
-                topCoin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                topCoin.refreshBody(); topCoin.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addFloatingAnim(topCoin);
-
-                const b1 = this.coins.create(startX, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
-                b1.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                b1.refreshBody(); b1.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addFloatingAnim(b1);
-
-                const b2 = this.coins.create(startX + BLOCK_SIZE, startY + (BLOCK_SIZE*0.6), `coin_${this.level}`);
-                b2.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
-                b2.refreshBody(); b2.body.setSize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4); 
-                this.addFloatingAnim(b2);
+            addCoinWiggle(coin) {
+                const startDelay = Phaser.Math.Between(0, 500);
+                this.tweens.add({ targets: coin, angle: { from: -15, to: 15 }, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut', delay: startDelay });
+                this.tweens.add({ targets: coin, y: coin.y - 15, yoyo: true, repeat: -1, duration: Phaser.Math.Between(600, 1000), ease: 'Sine.easeInOut', delay: startDelay });
             }
 
             addFloatingAnim(target) {
@@ -1257,17 +1241,6 @@
                     targets: target,
                     y: target.y - 20,
                     yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut',
-                    delay: startDelay
-                });
-            }
-
-            addCoinWiggle(coin) {
-                const startDelay = Phaser.Math.Between(0, 1000);
-                const dur = Phaser.Math.Between(350, 450);
-                this.tweens.add({ 
-                    targets: coin, 
-                    angle: { from: -15, to: 15 }, 
-                    yoyo: true, repeat: -1, duration: dur, ease: 'Sine.easeInOut',
                     delay: startDelay
                 });
             }
@@ -1296,27 +1269,12 @@
                 coin.destroy();
                 this.score += 1;
                 this.updateHUD();
-                this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
-                if(!DEMO_MODE && this.coinSound) {
-                    if(this.coinSound.isPlaying) this.coinSound.stop();
-                    this.coinSound.play();
-                }
+                this.spawnParticles(coin.x, coin.y, 'round', 0xffff00); 
             }
 
             collectPowerup(p, item) {
                 const type = item.getData('type');
                 item.destroy();
-                
-                if (type === 'life') {
-                    if (this.lives < 3) {
-                        this.lives++;
-                    }
-                    this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
-                    if(!DEMO_MODE && this.powerSound) this.powerSound.play();
-                    this.updateHUD();
-                    return; 
-                }
-
                 this.score += 1;
                 this.updateHUD();
                 let color = 0xffffff;
@@ -1324,9 +1282,6 @@
                 else if (type === 'magnet') color = 0x9333ea; 
                 else if (type === 'doublejump') color = 0x00ffff; 
                 this.spawnParticles(p.x, p.y, 'round', color);
-
-                if(!DEMO_MODE && this.powerSound) this.powerSound.play();
-
                 this.powerupIconUI.setTexture(type + '_item').setVisible(true);
                 this.powerupBarBg.setVisible(true);
                 this.powerupBar.setVisible(true).width = 100; 
@@ -1351,58 +1306,18 @@
             hitObstacle(p, o) {
                 if(this.hasShield) { o.destroy(); this.hasShield=false; this.shieldFx.setVisible(false); return; }
                 if(this.isInvincible) return; 
-                
-                if(!DEMO_MODE && this.hitSound) this.hitSound.play();
-
-                this.isStunned = true;
-                this.player.setTexture(`${userData.character}_hit`);
-                this.player.setVelocity(0,0);
-                this.player.body.setAllowGravity(false);
-                
                 this.spawnParticles(p.x, p.y, 'star', 0xff0000); 
                 o.destroy();
-
-                this.tweens.add({
-                    targets: this.player,
-                    x: '+=10', duration: 50, yoyo: true, repeat: 10,
-                    onComplete: () => { this.recoverFromHit(); }
-                });
-            }
-
-            recoverFromHit() {
                 this.takeDamage('hit');
-                if (this.isGameOver) return;
-                this.isStunned = false;
-                this.player.body.setAllowGravity(true);
-                this.player.play('run');
-                this.isInvincible = true;
-                this.tweens.add({
-                    targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 10,
-                    onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
-                });
             }
 
             takeDamage(type) {
                 this.lives--; 
                 this.score = Math.max(0, this.score - 5);
                 this.updateHUD();
-                
-                if (type === 'fall') {
-                    this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
-                    if(!DEMO_MODE && this.hitSound) this.hitSound.play();
-                    
-                    if (this.lives > 0) {
-                        this.player.y = this.scale.height * 0.2; 
-                        this.player.setVelocity(0, 0);
-                        this.isInvincible = true;
-                        this.tweens.add({
-                            targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
-                            onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
-                        });
-                        return;
-                    }
-                }
-                
+                this.cameras.main.shake(200, 0.01);
+                this.player.setTexture(`${userData.character}_${type==='hit'?'hit':'fall'}`);
+                if (type === 'fall') this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
                 if(this.lives <= 0) {
                     (async () => {
                         this.isGameOver = true; this.physics.pause();
@@ -1416,6 +1331,9 @@
                         await saveScore(this.score);
                         renderGameOverLeaderboard();
                     })();
+                } else {
+                    if(type === 'fall') { this.player.y = 0; this.player.setVelocityY(0); }
+                    this.time.delayedCall(500, () => { if(!this.isGameOver) this.player.play('run'); });
                 }
             }
 
@@ -1438,8 +1356,6 @@
                 portal.destroy();
                 this.cameras.main.flash(1000, 255, 255, 255);
                 this.isInvincible = true;
-                this.lifePowerupSpawned = false;
-                
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
@@ -1448,9 +1364,7 @@
                 this.score += 5;
                 this.distance = 0;
                 this.currentSpeed = GAME_CONFIG.startSpeed + ((this.level - 1) * 200); 
-                
                 this.bg.setTexture(`bg_${this.level}`);
-                
                 this.showLevelName();
                 this.levelStartTime = this.time.now;
                 this.portalSpawned = false;
@@ -1464,6 +1378,11 @@
                     this.hudContainer.add(icon);
                     this.lifeIcons.push(icon);
                 }
+                
+                const lvlStr = userData.lang === 'ar' ? `المرحلة ${this.level}` : `LEVEL ${this.level}`;
+                this.levelText = this.add.text(280, 60, lvlStr, { fontSize:'32px', fontFamily: userData.lang==='ar'?'Cairo':'Roboto', fontStyle:'bold', color:'#fff', stroke:'#000', strokeThickness:6 }).setOrigin(0,0.5);
+                this.hudContainer.add(this.levelText);
+
                 this.powerupIconUI = this.add.image(80, 130, 'shield_item').setDisplaySize(50,50).setVisible(false);
                 this.hudContainer.add(this.powerupIconUI);
                 this.powerupBarBg = this.add.rectangle(120, 130, 200, 20, 0x000000).setOrigin(0, 0.5).setVisible(false).setStrokeStyle(2, 0xffffff);
@@ -1478,6 +1397,8 @@
             updateHUD() {
                 this.scoreText.setText(`${I18N[userData.lang].score}: ${this.score}`);
                 this.lifeIcons.forEach((icon,i) => icon.setVisible(i < this.lives));
+                const lvlStr = userData.lang === 'ar' ? `المرحلة ${this.level}` : `LEVEL ${this.level}`;
+                this.levelText.setText(lvlStr);
             }
 
             showLevelName() {
