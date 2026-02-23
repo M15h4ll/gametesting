@@ -176,7 +176,7 @@
                     <li>بعد انتهاء اللعبة، انقر على <span class="font-bold text-white">"شارك"</span>.</li>
                     <li>انشر نتيجتك على إنستجرام.</li>
                     <li>أضف الهاشتاجات <span class="font-bold text-blue-300">#OQEP #طاقتنا_للخير #EnergyForGood</span></li>
-                    <li>تأكد من أن حسابك عام وقت المشاركة.</li>
+                    <li>تأكد من أن حسابك عام (Public) وقت المشاركة.</li>
                     <li>يمكنك اللعب عدة مرات ومشاركة نتائج متعددة لتحسين ترتيبك.</li>
                 </ul>
                 <p class="mt-4 font-bold text-yellow-300 p-3 bg-white/10 rounded border border-yellow-400/30">أعلى 5 نتائج بنهاية شهر رمضان 2026 سيفوزون بهدية خاصة من OQEP.</p>
@@ -236,16 +236,10 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden z-50">
-        <!-- EXACT PORTRAIT BACKGROUND -->
-        <img src="assets/ui/menu.png" class="absolute top-0 left-1/2 transform -translate-x-1/2 h-full aspect-[9/16] object-cover blur-sm opacity-60 z-0 pointer-events-none" alt="">
-        
-        <!-- FULL SCREEN ART OVERLAY (STRICT PORTRAIT) -->
-        <img src="assets/ui/art.png" class="absolute top-0 left-1/2 transform -translate-x-1/2 h-full aspect-[9/16] object-cover z-[5] pointer-events-none" alt="">
+        <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60 z-0" alt="">
 
         <div class="mb-6 z-20 relative flex flex-col items-center">
-             <!-- NEW OQ LOGO -->
              <img src="assets/ui/oqlogo.png" id="ui-oqlogo" alt="OQ LOGO" class="max-w-[120px] mb-3 h-auto object-contain drop-shadow-md">
-             <!-- STATIC GAME LOGO -->
              <img src="assets/ui/logo.png" id="ui-logo" alt="GAME LOGO" class="max-w-[280px] h-auto object-contain drop-shadow-lg">
         </div>
 
@@ -384,11 +378,9 @@
         const GROUND_Y = Math.floor(LOGICAL_HEIGHT - (BLOCK_SIZE * 3.5));
         
         const LEVEL_NAMES = {
-            1: { en: "Masandam", ar: "مسندم" },
+            1: { en: "Musandam", ar: "مسندم" },
             2: { en: "Marsa", ar: "مرسى" },
-            3: { en: "Bisat desert", ar: "صحراء بساط" },
-            4: { en: "Kamzar", ar: "كمزار" },
-            5: { en: "The Finale", ar: "الختام" } 
+            3: { en: "Bisat desert", ar: "صحراء بساط" }
         };
 
         const LETTER_PATTERNS = {
@@ -768,14 +760,17 @@
                 }
                 g.closePath(); g.fillPath(); g.generateTexture('particle_star_4', 64, 64); g.clear();
 
-                // ALWAYS LOAD AUDIO
-                this.load.audio('bgm', 'assets/audio/gamebg.mp3');
-                this.load.audio('sfx_coin', 'assets/audio/coin.wav');
-                this.load.audio('sfx_power', 'assets/audio/power.mp3');
-                this.load.audio('sfx_hit', 'assets/audio/hit.mp3');
+                const isPreviewEnv = window.location.protocol === 'blob:' || window.location.protocol === 'data:' || window.location.protocol === 'file:';
+                
+                if(isPreviewEnv) {
+                    this.createDemoAssets();
+                } else {
+                    // ALWAYS PRELOAD AUDIO (Decoupled from DEMO_MODE, but only if not in preview to avoid URL errors)
+                    this.load.audio('bgm', 'assets/audio/gamebg.mp3');
+                    this.load.audio('sfx_coin', 'assets/audio/coin.wav');
+                    this.load.audio('sfx_power', 'assets/audio/power.mp3');
+                    this.load.audio('sfx_hit', 'assets/audio/hit.mp3');
 
-                if(DEMO_MODE) this.createDemoAssets();
-                else {
                     this.load.image('life_icon', 'assets/ui/life_icon.png');
                     this.load.image('menu', 'assets/ui/menu.png');
                     ['rahal','rahala'].forEach(c => {
@@ -955,7 +950,7 @@
                 if(this.hasMagnet) {
                     this.magnetFx.setPosition(this.player.x, this.player.y);
                     this.coins.children.iterate(c => {
-                        if(c && Phaser.Math.Distance.Between(this.player.x,this.player.y,c.x,c.y)<600) this.physics.moveToObject(c,this.player,800);
+                        if(c && Phaser.Math.Distance.Between(this.player.x,this.player.y,c.x,c.y)<800) this.physics.moveToObject(c,this.player,1800);
                     });
                 }
 
@@ -1310,7 +1305,7 @@
                         this.lives++;
                     }
                     this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
-                    if(this.powerSound) this.powerSound.play();
+                    if(!DEMO_MODE && this.powerSound) this.powerSound.play();
                     this.updateHUD();
                     return; 
                 }
@@ -1323,24 +1318,24 @@
                 else if (type === 'doublejump') color = 0x00ffff; 
                 this.spawnParticles(p.x, p.y, 'round', color);
 
-                if(this.powerSound) this.powerSound.play();
+                if(!DEMO_MODE && this.powerSound) this.powerSound.play();
 
                 this.powerupIconUI.setTexture(type + '_item').setVisible(true);
                 this.powerupBarBg.setVisible(true);
                 this.powerupBar.setVisible(true).width = 100; 
                 if (this.powerupTween) this.powerupTween.stop();
                 this.powerupTween = this.tweens.add({
-                    targets: this.powerupBar, width: 0, duration: 5000,
+                    targets: this.powerupBar, width: 0, duration: 8000,
                     onComplete: () => {
                         this.powerupIconUI.setVisible(false); this.powerupBarBg.setVisible(false); this.powerupBar.setVisible(false); this.hasDoubleJump = false; 
                     }
                 });
                 if(type === 'shield') {
                     this.hasShield = true; this.shieldFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
+                    this.time.delayedCall(8000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
                 } else if (type === 'magnet') {
                     this.hasMagnet = true; this.magnetFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
+                    this.time.delayedCall(8000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
                 } else if (type === 'doublejump') {
                     this.hasDoubleJump = true;
                 }
@@ -1418,7 +1413,7 @@
             }
 
             enterPortal(p, portal) {
-                if(this.level === 4) { // WIN
+                if(this.level === 3) { // WIN
                     (async () => {
                         this.isGameOver = true; this.physics.pause();
                         if(this.bgMusic) this.bgMusic.stop();
