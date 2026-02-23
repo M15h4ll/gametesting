@@ -158,7 +158,7 @@
                 <p class="font-medium">مرحباً بكم في لعبة OQEP الرمضانية "طاقتنا للخير"!</p>
                 
                 <h3 class="text-2xl font-bold text-yellow-400 mt-8 mb-2">مفهوم اللعبة</h3>
-                <p class="text-sm leading-relaxed text-gray-200">هي لعبة ركض لا نهائي تستكشف فيها عُمان عبر أربعة مستويات مشوقة، وتجمع العملات وفوانيس رمضان في طريقك.</p>
+                <p class="text-sm leading-relaxed text-gray-200">هي لعبة ركض لا نهائي تستكشف فيها عُمان عبر ثلاثة مستويات مشوقة، وتجمع العملات وفوانيس رمضان في طريقك.</p>
                 <p class="text-sm leading-relaxed text-gray-200">كل مستوى يمثل رحلة من الخير — مستوحاة من تواجد OQEP في جميع أنحاء السلطنة ومبادراتها المجتمعية.</p>
                 <h4 class="font-bold text-lg mt-4 text-blue-300">هدفك:</h4>
                 <ul class="list-disc list-inside mr-2 text-sm text-gray-200 space-y-1">
@@ -667,7 +667,6 @@
                 return; 
             }
             
-            // Only renders Rank, Name, Score (Mobile is excluded here)
             tbody.innerHTML = top5.map((u, i) => `
                 <tr class="border-b border-gray-700 bg-gray-800 bg-opacity-50 hover:bg-gray-700">
                     <td class="px-4 py-2 font-bold text-gray-400">#${i+1}</td>
@@ -730,6 +729,60 @@
             }
 
             preload() {
+                const width = this.cameras.main.width;
+                const height = this.cameras.main.height;
+                
+                // Loading UI Background Box
+                const progressBox = this.add.graphics();
+                progressBox.fillStyle(0x000000, 0.8);
+                progressBox.fillRect(width / 2 - 260, height / 2 - 30, 520, 60);
+                
+                // Loading UI Progress Bar
+                const progressBar = this.add.graphics();
+                
+                // Text for Loading
+                const loadingTextStr = userData.lang === 'ar' ? '...جاري التحميل' : 'Loading...';
+                const loadingText = this.make.text({
+                    x: width / 2,
+                    y: height / 2 - 80,
+                    text: loadingTextStr,
+                    style: { font: 'bold 40px Cairo', fill: '#ffffff' }
+                }).setOrigin(0.5, 0.5);
+                
+                // Percent Value
+                const percentText = this.make.text({
+                    x: width / 2,
+                    y: height / 2,
+                    text: '0%',
+                    style: { font: 'bold 24px Roboto', fill: '#ffffff' }
+                }).setOrigin(0.5, 0.5);
+                
+                // Please Wait message
+                const waitTextStr = userData.lang === 'ar' ? 'يرجى الانتظار، التحميل لأول مرة يستغرق وقتاً أطول...' : 'Please wait, first time to load takes longer...';
+                const pleaseWaitText = this.make.text({
+                    x: width / 2,
+                    y: height / 2 + 80,
+                    text: waitTextStr,
+                    style: { font: 'bold 24px Cairo', fill: '#facc15' }
+                }).setOrigin(0.5, 0.5);
+                
+                // Progress Event
+                this.load.on('progress', function (value) {
+                    percentText.setText(parseInt(value * 100) + '%');
+                    progressBar.clear();
+                    progressBar.fillStyle(0x00ff00, 1);
+                    progressBar.fillRect(width / 2 - 250, height / 2 - 20, 500 * value, 40);
+                });
+                
+                // Complete Event
+                this.load.on('complete', function () {
+                    progressBar.destroy();
+                    progressBox.destroy();
+                    loadingText.destroy();
+                    percentText.destroy();
+                    pleaseWaitText.destroy();
+                });
+
                 const g = this.make.graphics();
                 // Round Particle
                 g.fillStyle(0xffffff); g.fillCircle(16,16,16); g.generateTexture('particle_round', 32, 32); g.clear();
@@ -986,9 +1039,7 @@
                     const portalX = this.nextSpawnX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, this.scale.height / 2, 'portal_1');
                     portal.play('portal');
-                    // Set height to full screen height (1920) so it cannot be jumped over or fallen under
                     portal.setDisplaySize(BLOCK_SIZE * 2.5, this.scale.height);
-                    // FORCE FULL HEIGHT PHYSICS BODY
                     portal.body.setSize(BLOCK_SIZE * 2.5, this.scale.height);
                     portal.body.setAllowGravity(false);
                     this.portalSpawned = true;
@@ -1005,7 +1056,6 @@
                 for (let i = 0; i < count; i++) {
                     const x = this.nextSpawnX;
                     
-                    // TOP LAYER (Physics Enabled) - USE groundSolids GROUP
                     const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                     block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                     block.refreshBody(); 
@@ -1016,7 +1066,6 @@
                     block.body.checkCollision.left = false;
                     block.body.checkCollision.right = false;
 
-                    // DECOR LAYERS (No Physics)
                     for(let j=1; j<4; j++) {
                         const y = topY + (j * BLOCK_SIZE) - 2;
                         const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
@@ -1024,7 +1073,6 @@
                     }
 
                     if (!this.portalSpawned) {
-                        // SAFE START CHECK (3000ms)
                         if (this.time.now - this.gameStartTime > this.safeStartDuration) {
                             if (Math.random() < 0.05) { 
                                 const type = Phaser.Math.Between(1, 3);
@@ -1033,12 +1081,13 @@
                             if (Math.random() < 0.2) this.spawnItem(x, topY - (BLOCK_SIZE * 0.8));
                         }
                     }
-                    
+
                     this.nextSpawnX += (BLOCK_SIZE - 2);
                 }
+
                 this.distance += count;
             }
-            
+
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
                     for(let i=0; i<3; i++) {
@@ -1078,7 +1127,6 @@
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
 
-                // Priority: Life Powerup (once per level, after 3s, not in level 1)
                 if (this.level > 1 && !this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
                     this.spawnFloatingItem(x, y - (BLOCK_SIZE * 1.5), 'life');
                     this.lifePowerupSpawned = true;
@@ -1102,18 +1150,14 @@
                     if (unsafe) return;
                     if (x > this.coinPatternBarrier) {
                         const coinRand = Math.random();
-                        if (coinRand < 0.25) {
+                        if (coinRand < 0.15) {
                             this.spawnCoinArc(x, y - (BLOCK_SIZE));
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else if (coinRand < 0.5) {
+                        } else if (coinRand < 0.3) {
                             this.spawnCoinLine(x, y - (BLOCK_SIZE*0.5)); 
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else if (coinRand < 0.75) {
-                            this.spawnCoinZigZag(x, y - (BLOCK_SIZE*0.5));
-                            this.coinPatternBarrier = x + (BLOCK_SIZE * 5);
                         } else {
-                            this.spawnCoin(x, y - (BLOCK_SIZE * 1.5));
-                            this.coinPatternBarrier = x + (BLOCK_SIZE * 3);
+                            this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
                         }
                     }
                 } 
@@ -1297,10 +1341,7 @@
                 this.score += 1;
                 this.updateHUD();
                 this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
-                if(!DEMO_MODE && this.coinSound) {
-                    if(this.coinSound.isPlaying) this.coinSound.stop();
-                    this.coinSound.play();
-                }
+                if(this.coinSound) this.coinSound.play();
             }
 
             collectPowerup(p, item) {
@@ -1312,7 +1353,7 @@
                         this.lives++;
                     }
                     this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
-                    if(!DEMO_MODE && this.powerSound) this.powerSound.play();
+                    if(this.powerSound) this.powerSound.play();
                     this.updateHUD();
                     return; 
                 }
@@ -1325,24 +1366,24 @@
                 else if (type === 'doublejump') color = 0x00ffff; 
                 this.spawnParticles(p.x, p.y, 'round', color);
 
-                if(!DEMO_MODE && this.powerSound) this.powerSound.play();
+                if(this.powerSound) this.powerSound.play();
 
                 this.powerupIconUI.setTexture(type + '_item').setVisible(true);
                 this.powerupBarBg.setVisible(true);
                 this.powerupBar.setVisible(true).width = 100; 
                 if (this.powerupTween) this.powerupTween.stop();
                 this.powerupTween = this.tweens.add({
-                    targets: this.powerupBar, width: 0, duration: 8000,
+                    targets: this.powerupBar, width: 0, duration: 5000,
                     onComplete: () => {
                         this.powerupIconUI.setVisible(false); this.powerupBarBg.setVisible(false); this.powerupBar.setVisible(false); this.hasDoubleJump = false; 
                     }
                 });
                 if(type === 'shield') {
                     this.hasShield = true; this.shieldFx.setVisible(true);
-                    this.time.delayedCall(8000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
+                    this.time.delayedCall(5000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
                 } else if (type === 'magnet') {
                     this.hasMagnet = true; this.magnetFx.setVisible(true);
-                    this.time.delayedCall(8000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
+                    this.time.delayedCall(5000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
                 } else if (type === 'doublejump') {
                     this.hasDoubleJump = true;
                 }
@@ -1352,7 +1393,7 @@
                 if(this.hasShield) { o.destroy(); this.hasShield=false; this.shieldFx.setVisible(false); return; }
                 if(this.isInvincible) return; 
                 
-                if(!DEMO_MODE && this.hitSound) this.hitSound.play();
+                if(this.hitSound) this.hitSound.play();
 
                 this.isStunned = true;
                 this.player.setTexture(`${userData.character}_hit`);
@@ -1389,7 +1430,7 @@
                 
                 if (type === 'fall') {
                     this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
-                    if(!DEMO_MODE && this.hitSound) this.hitSound.play();
+                    if(this.hitSound) this.hitSound.play();
                     
                     if (this.lives > 0) {
                         this.player.y = this.scale.height * 0.2; 
