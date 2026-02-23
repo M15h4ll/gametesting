@@ -236,7 +236,14 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="overlay interactive bg-black bg-opacity-30 backdrop-blur-sm flex-col overflow-hidden z-50">
-        <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60 z-0" alt="">
+        
+        <!-- EXACT 1080x1920 NON-SCALABLE CONTAINERS FOR BG & ART -->
+        <div class="absolute inset-0 flex justify-center items-center pointer-events-none z-0 overflow-hidden">
+            <div style="width: 1080px; height: 1920px; max-width: 100vw; max-height: 100vh; aspect-ratio: 1080/1920; position: relative;">
+                <img src="assets/ui/menu.png" class="absolute inset-0 w-full h-full object-cover blur-sm opacity-60" alt="">
+                <img src="assets/ui/art.png" class="absolute inset-0 w-full h-full object-cover z-[5]" alt="">
+            </div>
+        </div>
 
         <div class="mb-6 z-20 relative flex flex-col items-center">
              <img src="assets/ui/oqlogo.png" id="ui-oqlogo" alt="OQ LOGO" class="max-w-[120px] mb-3 h-auto object-contain drop-shadow-md">
@@ -252,11 +259,6 @@
                 <div>
                     <label id="lbl-name" class="block text-sm font-bold text-gray-700">Name</label>
                     <input type="text" id="inp-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
-                </div>
-                
-                <div>
-                    <label id="lbl-mobile" class="block text-sm font-bold text-gray-700">Mobile Number</label>
-                    <input type="tel" id="inp-mobile" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#13647a] focus:border-[#13647a]">
                 </div>
                 
                 <div class="pt-4">
@@ -316,7 +318,7 @@
             </button>
         </div>
 
-        <!-- GLOBAL LEADERBOARD SECTION (No mobile number shown here) -->
+        <!-- GLOBAL LEADERBOARD SECTION -->
         <div class="w-full max-w-md bg-gray-800/90 rounded-lg p-4 mb-8 border border-gray-700 shadow-xl backdrop-blur-md">
             <h3 class="text-xl font-bold text-white mb-3 text-center border-b border-gray-600 pb-2">Top 5 Leaders</h3>
             <table class="w-full text-left text-sm text-gray-300">
@@ -344,12 +346,12 @@
 
         // ⚠️ DEVELOPER: Replace these values with your Firebase Project Config
         const firebaseConfig = {
-            apiKey: "AIzaSyD42Pncs-uhUkb1CTeixwVNDctsF73GKV8",
-            authDomain: "rahalscores.firebaseapp.com",
-            projectId: "rahalscores",
-            storageBucket: "rahalscores.firebasestorage.app",
-            messagingSenderId: "562530648403",
-            appId: "1:562530648403:web:dda7c6653b343371b221a6"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         let app, db;
@@ -398,11 +400,11 @@
             jumpForce: -2000 
         };
 
-        let userData = { name: "", mobile: "", character: "rahal", lang: "en" };
+        let userData = { name: "", character: "rahal", lang: "en" };
         const DB_KEY = 'rahal_game_db';
         const I18N = {
-            en: { name: "Name", mobile: "Mobile Number", char: "Choose Character", start: "START ADVENTURE", score: "Score", share: "Share", playagain: "Play Again", win: "🏆", proceed: "Accept & Play", scan: "Scan to play" },
-            ar: { name: "الاسم", mobile: "رقم الهاتف", char: "اختر الشخصية", start: "ابدأ المغامرة", score: "النتيجة", share: "شارك", playagain: "العب مرة أخرى", win: "🏆", proceed: "موافق وابدأ اللعب", scan: "امسح للعب" }
+            en: { name: "Name", char: "Choose Character", start: "START ADVENTURE", score: "Score", share: "Share", playagain: "Play Again", win: "🏆", proceed: "Accept & Play", scan: "Scan to play" },
+            ar: { name: "الاسم", char: "اختر الشخصية", start: "ابدأ المغامرة", score: "النتيجة", share: "شارك", playagain: "العب مرة أخرى", win: "🏆", proceed: "موافق وابدأ اللعب", scan: "امسح للعب" }
         };
 
         let gameInstance = null;
@@ -434,7 +436,6 @@
             
             // Registration Form
             document.getElementById('lbl-name').innerText = t.name;
-            document.getElementById('lbl-mobile').innerText = t.mobile;
             document.getElementById('lbl-char').innerText = t.char;
             document.getElementById('btn-start').innerText = t.start;
             
@@ -465,11 +466,9 @@
 
         function startGame() {
             const n = document.getElementById('inp-name').value;
-            const m = document.getElementById('inp-mobile').value;
-            if(!n || !m) return alert(userData.lang === 'en' ? "Missing Name or Mobile" : "الاسم أو رقم الهاتف مطلوب");
+            if(!n) return alert(userData.lang === 'en' ? "Missing Name" : "الاسم مطلوب");
             
             userData.name = n;
-            userData.mobile = m;
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('mute-btn').style.display = 'flex';
             if(!document.getElementById('particles-container').innerHTML) createParticles();
@@ -602,7 +601,7 @@
             p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
             
             if(p.style.display === 'flex') {
-                document.getElementById('admin-table-body').innerHTML = '<tr><td colspan="5" class="p-4 text-center">Loading Data...</td></tr>';
+                document.getElementById('admin-table-body').innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading Data...</td></tr>';
                 let data = [];
                 
                 if(useFirebase) {
@@ -623,12 +622,11 @@
                 const html = data.sort((a,b)=>b.score-a.score).map(u => `
                     <tr class="border-b border-gray-700">
                         <td class="p-2 text-white">${u.name}</td>
-                        <td class="p-2">${u.mobile||'-'}</td>
                         <td class="p-2 capitalize">${u.character||'-'}</td>
                         <td class="p-2 text-yellow-400">${u.score}</td>
                         <td class="p-2 text-xs">${new Date(u.date).toLocaleDateString()}</td>
                     </tr>`).join('');
-                document.getElementById('admin-table-body').innerHTML = html || '<tr><td colspan="5" class="p-4">No data</td></tr>';
+                document.getElementById('admin-table-body').innerHTML = html || '<tr><td colspan="4" class="p-4">No data</td></tr>';
             }
         }
 
@@ -988,7 +986,9 @@
                     const portalX = this.nextSpawnX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, this.scale.height / 2, 'portal_1');
                     portal.play('portal');
+                    // Set height to full screen height (1920) so it cannot be jumped over or fallen under
                     portal.setDisplaySize(BLOCK_SIZE * 2.5, this.scale.height);
+                    // FORCE FULL HEIGHT PHYSICS BODY
                     portal.body.setSize(BLOCK_SIZE * 2.5, this.scale.height);
                     portal.body.setAllowGravity(false);
                     this.portalSpawned = true;
@@ -1005,6 +1005,7 @@
                 for (let i = 0; i < count; i++) {
                     const x = this.nextSpawnX;
                     
+                    // TOP LAYER (Physics Enabled) - USE groundSolids GROUP
                     const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                     block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                     block.refreshBody(); 
@@ -1015,6 +1016,7 @@
                     block.body.checkCollision.left = false;
                     block.body.checkCollision.right = false;
 
+                    // DECOR LAYERS (No Physics)
                     for(let j=1; j<4; j++) {
                         const y = topY + (j * BLOCK_SIZE) - 2;
                         const dBlock = this.decorLayer.create(x, y, `block_${this.level}`);
@@ -1022,6 +1024,7 @@
                     }
 
                     if (!this.portalSpawned) {
+                        // SAFE START CHECK (3000ms)
                         if (this.time.now - this.gameStartTime > this.safeStartDuration) {
                             if (Math.random() < 0.05) { 
                                 const type = Phaser.Math.Between(1, 3);
@@ -1030,13 +1033,12 @@
                             if (Math.random() < 0.2) this.spawnItem(x, topY - (BLOCK_SIZE * 0.8));
                         }
                     }
-
+                    
                     this.nextSpawnX += (BLOCK_SIZE - 2);
                 }
-
                 this.distance += count;
             }
-
+            
             spawnHangingPattern(type, startX, startY) {
                 if (type === 1) { 
                     for(let i=0; i<3; i++) {
@@ -1076,6 +1078,7 @@
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
 
+                // Priority: Life Powerup (once per level, after 3s, not in level 1)
                 if (this.level > 1 && !this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
                     this.spawnFloatingItem(x, y - (BLOCK_SIZE * 1.5), 'life');
                     this.lifePowerupSpawned = true;
@@ -1109,7 +1112,8 @@
                             this.spawnCoinZigZag(x, y - (BLOCK_SIZE*0.5));
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 5);
                         } else {
-                            this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
+                            this.spawnCoin(x, y - (BLOCK_SIZE * 1.5));
+                            this.coinPatternBarrier = x + (BLOCK_SIZE * 3);
                         }
                     }
                 } 
@@ -1293,7 +1297,10 @@
                 this.score += 1;
                 this.updateHUD();
                 this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
-                if(this.coinSound) this.coinSound.play();
+                if(!DEMO_MODE && this.coinSound) {
+                    if(this.coinSound.isPlaying) this.coinSound.stop();
+                    this.coinSound.play();
+                }
             }
 
             collectPowerup(p, item) {
@@ -1345,7 +1352,7 @@
                 if(this.hasShield) { o.destroy(); this.hasShield=false; this.shieldFx.setVisible(false); return; }
                 if(this.isInvincible) return; 
                 
-                if(this.hitSound) this.hitSound.play();
+                if(!DEMO_MODE && this.hitSound) this.hitSound.play();
 
                 this.isStunned = true;
                 this.player.setTexture(`${userData.character}_hit`);
@@ -1382,7 +1389,7 @@
                 
                 if (type === 'fall') {
                     this.spawnParticles(this.player.x, this.player.y, 'star', 0xff0000);
-                    if(this.hitSound) this.hitSound.play();
+                    if(!DEMO_MODE && this.hitSound) this.hitSound.play();
                     
                     if (this.lives > 0) {
                         this.player.y = this.scale.height * 0.2; 
