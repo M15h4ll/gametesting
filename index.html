@@ -1156,7 +1156,7 @@
                     }
                 }
 
-                if (r < 0.75) { 
+                if (r < 0.7) { 
                     if (unsafe) return;
                     if (x > this.coinPatternBarrier) {
                         const coinRand = Math.random();
@@ -1171,7 +1171,7 @@
                         }
                     }
                 } 
-                else if (r < 0.7) { 
+                else if (r < 0.78) { 
                     if (tooCloseForObstacle) return; 
                     
                     this.lastObstacleX = x;
@@ -1183,7 +1183,7 @@
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
                 } 
-                else if (r < 0.78) { 
+                else if (r < 0.6) { 
                     if (tooCloseForObstacle) return;
                     
                     this.lastAirObstacleX = x;
@@ -1269,7 +1269,7 @@
 
             spawnCoinZigZag(startX, startY) {
                 const offsets = [0, -40, 0, -40, 0];
-                for(let i=0; i<5; i++) {
+                for(let i=0; i<8; i++) {
                     const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.6)), startY + offsets[i], `coin_${this.level}`);
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
