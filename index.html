@@ -930,7 +930,7 @@
                 this.tweens.add({
                     targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 15,
                     onComplete: () => { this.isInvincible = false; this.player.alpha = 1; }
-                });
+                }
                 // SECRET CHEAT: Add 55 coins on NUMPAD 0
                 this.input.keyboard.on('keydown-NUMPAD_ZERO', () => {
                     if (!this.isGameOver) {
@@ -940,7 +940,8 @@
                         this.spawnParticles(this.player.x, this.player.y, 'mix', 0xffff00);
                         if (!DEMO_MODE && this.coinSound) this.coinSound.play();
                     }
-            }
+            });
+            
 
             // DELTA UPDATE FIX for 120Hz Screens
             update(time, delta) {
