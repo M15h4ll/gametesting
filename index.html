@@ -88,7 +88,7 @@
                 <ul class="text-sm text-gray-200 space-y-1">
                     <li>✔ Run as far as possible</li>
                     <li>✔ Avoid obstacles</li>
-                    <li>✔ Collect coins</li>
+                    <li>✔ Collect coins (x2 Coins with Shield)</li>
                     <li>✔ Complete levels</li>
                     <li>✔ Achieve the highest score</li>
                 </ul>
@@ -164,7 +164,7 @@
                 <ul class="text-sm text-gray-200 space-y-1">
                     <li>✔ اركض لأبعد مسافة ممكنة</li>
                     <li>✔ تجنب العقبات</li>
-                    <li>✔ اجمع العملات</li>
+                    <li>✔ اجمع العملات (عملات مضاعفة عند تفعيل الدرع)</li>
                     <li>✔ أكمل المستويات</li>
                     <li>✔ حقق أعلى نتيجة</li>
                 </ul>
@@ -1045,7 +1045,7 @@
             }
             
             createGroundSegment(count) {
-                if (this.time.now - this.levelStartTime > 60000 && this.portals.countActive() === 0 && !this.portalSpawned) {
+                if (this.time.now - this.levelStartTime > 90000 && this.portals.countActive() === 0 && !this.portalSpawned) {
                     const portalX = this.nextSpawnX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, this.scale.height / 2, 'portal_1');
                     portal.play('portal');
@@ -1156,22 +1156,26 @@
                     }
                 }
 
-                if (r < 0.75) { 
+                // Balanced Probabilities: 60% Coins, 15% Ground Obs, 15% Air Obs, 5% Powerup, 5% Empty
+                if (r < 0.60) { 
                     if (unsafe) return;
                     if (x > this.coinPatternBarrier) {
                         const coinRand = Math.random();
-                        if (coinRand < 0.25) {
+                        if (coinRand < 0.30) {
                             this.spawnCoinArc(x, y - (BLOCK_SIZE));
-                            this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else if (coinRand < 0.3) {
+                            this.coinPatternBarrier = x + (BLOCK_SIZE * 5); 
+                        } else if (coinRand < 0.60) {
                             this.spawnCoinLine(x, y - (BLOCK_SIZE*0.5)); 
                             this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
+                        } else if (coinRand < 0.90) {
+                            this.spawnCoinZigZag(x, y - (BLOCK_SIZE*0.5));
+                            this.coinPatternBarrier = x + (BLOCK_SIZE * 6);
                         } else {
                             this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
                         }
                     }
                 } 
-                else if (r < 0.85) { 
+                else if (r < 0.75) { 
                     if (tooCloseForObstacle) return; 
                     
                     this.lastObstacleX = x;
@@ -1183,7 +1187,7 @@
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
                 } 
-                else if (r < 0.78) { 
+                else if (r < 0.90) { 
                     if (tooCloseForObstacle) return;
                     
                     this.lastAirObstacleX = x;
@@ -1196,7 +1200,7 @@
                     obs.body.setOffset(off, off);
                     this.tweens.add({targets: obs, y: obs.y + 50, yoyo: true, duration: 1000, repeat: -1});
                 }
-                else if (r < 0.8) { 
+                else if (r < 0.95) { 
                     const timeSinceLast = this.time.now - this.lastPowerupTime;
                     const requiredInterval = Phaser.Math.Between(10000, 15000);
                     if (this.time.now - this.gameStartTime < 5000) return;
@@ -1348,9 +1352,14 @@
 
             collectCoin(player, coin) {
                 coin.destroy();
-                this.score += 1;
+                // If Shield is active, user gets x2 coins!
+                const points = this.hasShield ? 2 : 1;
+                this.score += points;
                 this.updateHUD();
-                this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
+                
+                // Show green particles when picking up coins with a shield, otherwise yellow
+                this.spawnParticles(coin.x, coin.y, 'mix', this.hasShield ? 0x00ff00 : 0xffff00); 
+                
                 if(this.coinSound) this.coinSound.play();
             }
 
@@ -1362,6 +1371,7 @@
                     if (this.lives < 3) {
                         this.lives++;
                     }
+                    this.score += 10; // Extra 10 coins for life powerup
                     this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
                     if(this.powerSound) this.powerSound.play();
                     this.updateHUD();
@@ -1383,17 +1393,17 @@
                 this.powerupBar.setVisible(true).width = 100; 
                 if (this.powerupTween) this.powerupTween.stop();
                 this.powerupTween = this.tweens.add({
-                    targets: this.powerupBar, width: 0, duration: 5000,
+                    targets: this.powerupBar, width: 0, duration: 10000,
                     onComplete: () => {
                         this.powerupIconUI.setVisible(false); this.powerupBarBg.setVisible(false); this.powerupBar.setVisible(false); this.hasDoubleJump = false; 
                     }
                 });
                 if(type === 'shield') {
                     this.hasShield = true; this.shieldFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
+                    this.time.delayedCall(10000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
                 } else if (type === 'magnet') {
                     this.hasMagnet = true; this.magnetFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
+                    this.time.delayedCall(10000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
                 } else if (type === 'doublejump') {
                     this.hasDoubleJump = true;
                 }
