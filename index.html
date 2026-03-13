@@ -88,7 +88,7 @@
                 <ul class="text-sm text-gray-200 space-y-1">
                     <li>✔ Run as far as possible</li>
                     <li>✔ Avoid obstacles</li>
-                    <li>✔ Collect coins (x2 Coins with Shield)</li>
+                    <li>✔ Collect coins</li>
                     <li>✔ Complete levels</li>
                     <li>✔ Achieve the highest score</li>
                 </ul>
@@ -164,7 +164,7 @@
                 <ul class="text-sm text-gray-200 space-y-1">
                     <li>✔ اركض لأبعد مسافة ممكنة</li>
                     <li>✔ تجنب العقبات</li>
-                    <li>✔ اجمع العملات (عملات مضاعفة عند تفعيل الدرع)</li>
+                    <li>✔ اجمع العملات</li>
                     <li>✔ أكمل المستويات</li>
                     <li>✔ حقق أعلى نتيجة</li>
                 </ul>
@@ -395,7 +395,7 @@
         const GAME_CONFIG = {
             gravity: 3000, 
             startSpeed: 600,  
-            maxSpeed: 1800,    
+            maxSpeed: 1800,   
             acceleration: 0.1, 
             jumpForce: -2000 
         };
@@ -1045,7 +1045,8 @@
             }
             
             createGroundSegment(count) {
-                if (this.time.now - this.levelStartTime > 60000 && this.portals.countActive() === 0 && !this.portalSpawned) {
+                // Portal delay extended from 60 seconds to 90 seconds (90000ms)
+                if (this.time.now - this.levelStartTime > 90000 && this.portals.countActive() === 0 && !this.portalSpawned) {
                     const portalX = this.nextSpawnX + (BLOCK_SIZE * 3);
                     const portal = this.portals.create(portalX, this.scale.height / 2, 'portal_1');
                     portal.play('portal');
@@ -1088,7 +1089,8 @@
                                 const type = Phaser.Math.Between(1, 3);
                                 this.spawnHangingPattern(type, x, topY - (BLOCK_SIZE * 3.5)); 
                             }
-                            if (Math.random() < 0.2) this.spawnItem(x, topY - (BLOCK_SIZE * 0.8));
+                            // Call spawnItem to handle generation of coins, obstacles, and powerups based on adjusted probabilities
+                            if (Math.random() < 0.4) this.spawnItem(x, topY - (BLOCK_SIZE * 0.8));
                         }
                     }
 
@@ -1137,9 +1139,13 @@
             spawnItem(x, y) {
                 if (this.time.now - this.gameStartTime < this.safeStartDuration) return;
 
+                // NEW: Universal barrier check to prevent ANY items/patterns from overlapping!
+                if (x < this.coinPatternBarrier) return;
+
                 if (this.level > 1 && !this.lifePowerupSpawned && this.time.now - this.levelStartTime > 3000) {
                     this.spawnFloatingItem(x, y - (BLOCK_SIZE * 1.5), 'life');
                     this.lifePowerupSpawned = true;
+                    this.coinPatternBarrier = x + (BLOCK_SIZE * 2); // Reserve space
                     return;
                 }
 
@@ -1148,32 +1154,38 @@
                 const tooCloseForObstacle = Math.abs(x - Math.max(this.lastObstacleX, this.lastAirObstacleX)) < (BLOCK_SIZE * 6);
 
                 if (this.time.now - this.lastOQEPTime > 25000) {
-                    if (!unsafe && x > this.coinPatternBarrier) {
+                    if (!unsafe) {
                         this.spawnFullWordPattern(x, y - (BLOCK_SIZE * 2));
                         this.lastOQEPTime = this.time.now;
-                        this.coinPatternBarrier = x + (BLOCK_SIZE * 15); 
+                        this.coinPatternBarrier = x + (BLOCK_SIZE * 15); // Large barrier for word
                         return; 
                     }
                 }
 
-                // Balanced Probabilities: 50% Coins, 20% Ground Obs, 20% Air Obs, 5% Powerup, 5% Empty
-                if (r < 0.50) { 
+                // Balance Probabilities:
+                // 60% Coins | 15% Ground Obstacles | 15% Air Obstacles | 10% Powerup
+                if (r < 0.60) { 
                     if (unsafe) return;
-                    if (x > this.coinPatternBarrier) {
-                        const coinRand = Math.random();
-                        if (coinRand < 0.25) {
-                            this.spawnCoinArc(x, y - (BLOCK_SIZE));
-                            this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else if (coinRand < 0.3) {
-                            this.spawnCoinLine(x, y - (BLOCK_SIZE*0.5)); 
-                            this.coinPatternBarrier = x + (BLOCK_SIZE * 4); 
-                        } else {
-                            this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
-                        }
+                    const coinRand = Math.random();
+                    // 90% chance to spawn an array/pattern, 10% chance for a single coin
+                    if (coinRand < 0.30) {
+                        this.spawnCoinArc(x, y - (BLOCK_SIZE));
+                        this.coinPatternBarrier = x + (BLOCK_SIZE * 6); 
+                    } else if (coinRand < 0.60) {
+                        this.spawnCoinLine(x, y - (BLOCK_SIZE*0.5)); 
+                        this.coinPatternBarrier = x + (BLOCK_SIZE * 5); 
+                    } else if (coinRand < 0.90) {
+                        this.spawnCoinZigZag(x, y - (BLOCK_SIZE*0.5));
+                        this.coinPatternBarrier = x + (BLOCK_SIZE * 7);
+                    } else {
+                        this.spawnCoin(x, y - (BLOCK_SIZE*0.5));
+                        this.coinPatternBarrier = x + (BLOCK_SIZE);
                     }
                 } 
-                else if (r < 0.70) { 
+                else if (r < 0.75) { // Ground Obstacle (15%)
                     if (tooCloseForObstacle) return; 
+                    // Prevent the backward-reaching coin arc from clipping into a previous pattern
+                    if (x - (BLOCK_SIZE * 1.5) < this.coinPatternBarrier) return;
                     
                     this.lastObstacleX = x;
                     const obsY = y - (BLOCK_SIZE * 0.3);
@@ -1183,8 +1195,12 @@
                     obs.body.setSize(BLOCK_SIZE*0.5, BLOCK_SIZE*0.5);
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
+
+                    // NEW: Spawn a coin arc over the ground obstacle!
+                    this.spawnCoinArc(x - (BLOCK_SIZE * 1.5), y - (BLOCK_SIZE * 1.5));
+                    this.coinPatternBarrier = x + (BLOCK_SIZE * 4); // Protect the obstacle and its arc
                 } 
-                else if (r < 0.90) { 
+                else if (r < 0.90) { // Air Obstacle (15%)
                     if (tooCloseForObstacle) return;
                     
                     this.lastAirObstacleX = x;
@@ -1196,8 +1212,10 @@
                     const off = (BLOCK_SIZE*1.6 - BLOCK_SIZE*0.5) / 2;
                     obs.body.setOffset(off, off);
                     this.tweens.add({targets: obs, y: obs.y + 50, yoyo: true, duration: 1000, repeat: -1});
+
+                    this.coinPatternBarrier = x + (BLOCK_SIZE * 2);
                 }
-                else if (r < 0.95) { 
+                else { // Powerup (10%)
                     const timeSinceLast = this.time.now - this.lastPowerupTime;
                     const requiredInterval = Phaser.Math.Between(10000, 15000);
                     if (this.time.now - this.gameStartTime < 5000) return;
@@ -1208,6 +1226,8 @@
                     const pTypes = ['shield', 'magnet', 'doublejump'];
                     const type = pTypes[Phaser.Math.Between(0, 2)];
                     this.spawnFloatingItem(x, y, type);
+
+                    this.coinPatternBarrier = x + (BLOCK_SIZE * 2);
                 } 
             }
 
@@ -1243,8 +1263,8 @@
             }
 
             spawnCoinArc(startX, baseY) {
-                const radius = BLOCK_SIZE;
-                const steps = 5;
+                const radius = BLOCK_SIZE * 1.2;
+                const steps = 7;
                 const stepAngle = Math.PI / (steps - 1);
                 for(let i=0; i<steps; i++) {
                     const angle = Math.PI + (i * stepAngle); 
@@ -1259,7 +1279,7 @@
             }
 
             spawnCoinLine(startX, startY) {
-                for(let i=0; i<5; i++) {
+                for(let i=0; i<8; i++) {
                     const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.5)), startY, `coin_${this.level}`);
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
@@ -1269,8 +1289,8 @@
             }
 
             spawnCoinZigZag(startX, startY) {
-                const offsets = [0, -40, 0, -40, 0];
-                for(let i=0; i<8; i++) {
+                const offsets = [0, -40, -80, -40, 0, -40, -80, -40, 0, -40];
+                for(let i=0; i<10; i++) {
                     const coin = this.coins.create(startX + (i*(BLOCK_SIZE*0.6)), startY + offsets[i], `coin_${this.level}`);
                     coin.setDisplaySize(BLOCK_SIZE*0.4, BLOCK_SIZE*0.4);
                     coin.refreshBody();
@@ -1349,14 +1369,11 @@
 
             collectCoin(player, coin) {
                 coin.destroy();
-                // If Shield is active, user gets x2 coins!
-                const points = this.hasShield ? 2 : 1;
+                // Check if the Shield is active, give x2 points if true
+                const points = this.hasShield ? 2 : 1; 
                 this.score += points;
                 this.updateHUD();
-                
-                // Show green particles when picking up coins with a shield, otherwise yellow
-                this.spawnParticles(coin.x, coin.y, 'mix', this.hasShield ? 0x00ff00 : 0xffff00); 
-                
+                this.spawnParticles(coin.x, coin.y, 'mix', 0xffff00); 
                 if(this.coinSound) this.coinSound.play();
             }
 
@@ -1368,7 +1385,8 @@
                     if (this.lives < 3) {
                         this.lives++;
                     }
-                    this.score += 10; // Extra 10 coins for life powerup
+                    // Extra life powerup gives 10 coins as requested
+                    this.score += 10;
                     this.spawnParticles(p.x, p.y, 'round', 0xff0000); 
                     if(this.powerSound) this.powerSound.play();
                     this.updateHUD();
@@ -1389,18 +1407,21 @@
                 this.powerupBarBg.setVisible(true);
                 this.powerupBar.setVisible(true).width = 100; 
                 if (this.powerupTween) this.powerupTween.stop();
+                
+                // Duration multiplied by 2 (5000 -> 10000ms)
                 this.powerupTween = this.tweens.add({
-                    targets: this.powerupBar, width: 0, duration: 5000,
+                    targets: this.powerupBar, width: 0, duration: 10000,
                     onComplete: () => {
                         this.powerupIconUI.setVisible(false); this.powerupBarBg.setVisible(false); this.powerupBar.setVisible(false); this.hasDoubleJump = false; 
                     }
                 });
+                
                 if(type === 'shield') {
                     this.hasShield = true; this.shieldFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
+                    this.time.delayedCall(10000, () => { this.hasShield = false; this.shieldFx.setVisible(false); });
                 } else if (type === 'magnet') {
                     this.hasMagnet = true; this.magnetFx.setVisible(true);
-                    this.time.delayedCall(5000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
+                    this.time.delayedCall(10000, () => { this.hasMagnet = false; this.magnetFx.setVisible(false); });
                 } else if (type === 'doublejump') {
                     this.hasDoubleJump = true;
                 }
