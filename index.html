@@ -1069,16 +1069,12 @@
                     const block = this.groundSolids.create(x, topY, `block_${this.level}`);
                     block.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE);
                     block.refreshBody(); 
-                    
-                    // FIXED: Extend body height downward to prevent fast-fall tunneling
-                    block.body.setSize(BLOCK_SIZE, BLOCK_SIZE * 10); 
-                    block.body.setOffset(0, 0); 
+                    block.body.setSize(BLOCK_SIZE, BLOCK_SIZE); 
                     
                     block.body.immovable = true;
                     block.body.allowGravity = false;
                     block.body.checkCollision.left = false;
                     block.body.checkCollision.right = false;
-                    block.body.checkCollision.down = false;
 
                     for(let j=1; j<4; j++) {
                         const y = topY + (j * BLOCK_SIZE) - 2;
@@ -1107,34 +1103,29 @@
                     for(let i=0; i<3; i++) {
                         let plat1 = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
                         plat1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat1.refreshBody(); plat1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat1.body.immovable = true; plat1.body.allowGravity = false; 
-                        plat1.body.checkCollision.left = false; plat1.body.checkCollision.right = false; plat1.body.checkCollision.down = false;
                         if(i===1 && Math.random()<0.5) this.spawnItem(plat1.x, plat1.y - BLOCK_SIZE);
                     }
                 } else if (type === 2) { 
                     for(let i=0; i<4; i++) {
                         let plat2 = this.hangingBlocks.create(startX + (i*BLOCK_SIZE), startY, `block_${this.level}`);
                         plat2.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat2.refreshBody(); plat2.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat2.body.immovable = true; plat2.body.allowGravity = false; 
-                        plat2.body.checkCollision.left = false; plat2.body.checkCollision.right = false; plat2.body.checkCollision.down = false;
                         if(i===2 && Math.random()<0.5) this.spawnItem(plat2.x, plat2.y - BLOCK_SIZE);
                     }
                 } else if (type === 3) { 
                     let b1 = this.hangingBlocks.create(startX, startY, `block_${this.level}`);
                     b1.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); b1.refreshBody(); b1.body.setSize(BLOCK_SIZE, BLOCK_SIZE); b1.body.immovable = true; b1.body.allowGravity = false; 
-                    b1.body.checkCollision.left = false; b1.body.checkCollision.right = false; b1.body.checkCollision.down = false;
                     
                     let currentX = startX + BLOCK_SIZE + 200;
                     const step2Y = startY - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<3; i++) {
                         let plat3 = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step2Y, `block_${this.level}`);
                         plat3.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat3.refreshBody(); plat3.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat3.body.immovable = true; plat3.body.allowGravity = false;
-                        plat3.body.checkCollision.left = false; plat3.body.checkCollision.right = false; plat3.body.checkCollision.down = false;
                     }
                     currentX = currentX + (3*BLOCK_SIZE) + 200;
                     const step3Y = step2Y - (BLOCK_SIZE * 1.2); 
                     for(let i=0; i<4; i++) {
                         let plat4 = this.hangingBlocks.create(currentX + (i*BLOCK_SIZE), step3Y, `block_${this.level}`);
                         plat4.setDisplaySize(BLOCK_SIZE, BLOCK_SIZE); plat4.refreshBody(); plat4.body.setSize(BLOCK_SIZE, BLOCK_SIZE); plat4.body.immovable = true; plat4.body.allowGravity = false;
-                        plat4.body.checkCollision.left = false; plat4.body.checkCollision.right = false; plat4.body.checkCollision.down = false;
                         if (i === 3) {
                             const pTypes = ['shield', 'magnet', 'doublejump'];
                             const pType = pTypes[Phaser.Math.Between(0,2)];
@@ -1465,9 +1456,6 @@
                     if (this.lives > 0) {
                         this.player.y = this.scale.height * 0.2; 
                         this.player.setVelocity(0, 0);
-                        
-                        // FIXED: Suspend player in air to let the gap pass underneath!
-                        this.player.body.setAllowGravity(false); 
                         this.isInvincible = true;
                         
                         this.tweens.add({
@@ -1475,8 +1463,6 @@
                             onComplete: () => { 
                                 this.isInvincible = false; 
                                 this.player.alpha = 1; 
-                                // Safely drop the player back onto the new ground
-                                if(!this.isStunned && !this.isGameOver) this.player.body.setAllowGravity(true);
                             }
                         });
                         return;
